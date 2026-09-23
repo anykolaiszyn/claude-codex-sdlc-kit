@@ -1,0 +1,20 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "claude-codex-sdlc-kit",
+  "description": "Claude orchestrates, Codex reviews: a spec-first, test-first, PR-looped development process for Claude Code.",
+  "owner": {
+    "name": "Alex Nykolaiszyn",
+    "url": "https://github.com/anykolaiszyn"
+  },
+  "plugins": [
+    {
+      "name": "claude-codex-sdlc",
+      "source": "./",
+      "description": "Skills and commands to install and run a Claude + Codex development process in any GitHub repo.",
+      "version": "0.1.0",
+      "license": "MIT",
+      "category": "workflow",
+      "keywords": ["codex", "code-review", "sdlc", "tdd", "github", "workflow"]
+    }
+  ]
+}

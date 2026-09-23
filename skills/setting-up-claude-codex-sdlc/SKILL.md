@@ -11,6 +11,8 @@ The kit root is two directories above this skill's base directory (`<base>/../..
 
 1. **Check the machine** and report anything missing. Don't install it yourself.
    - `git --version`, `gh auth status`, `codex --version` (0.156+), `codex login status`, and `python --version`.
+   - `gh auth status` must show the `workflow` scope. If it doesn't, tell the user to run `gh auth refresh -h github.com -s workflow` **in their own terminal**; the device code expires unseen inside Claude Code.
+   - Ask the user to confirm the GitHub and Codex configuration in `docs/github-setup.md` (kit root): Codex connected to the repo, and **Code review** plus **Automatic reviews** turned on. Without it, the PR loop can't work.
    - The superpowers plugin must be installed. If its skills are missing from your skill list, tell the user to run `/plugin install superpowers@claude-plugins-official`.
 2. **Work out the answers** from the repo before asking the user. Look at `package.json` scripts, `pyproject.toml`, `Makefile`, `go.mod` and the CI config.
    - Answers: `PROJECT_NAME`, `PROJECT_PITCH`, `MAIN_BRANCH`, `TEST_CMD`, `CHECK_CMD`, `CODEX_TEST_CMD`, `CODEX_CHECK_CMD`, `REVIEW_PRIORITIES`, `M1_TITLE`.

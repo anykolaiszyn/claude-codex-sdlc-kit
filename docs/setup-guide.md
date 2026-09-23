@@ -4,6 +4,8 @@ This guide sets the kit up without the plugin, or explains what `/sdlc-init` doe
 
 ## 1. One-time machine setup
 
+You need the paid plans and tools listed in the [README's Prerequisites](../README.md#prerequisites), and the repo configured as described in [GitHub setup](github-setup.md).
+
 | Need | Install / check |
 |---|---|
 | Claude Code | `claude --version` |

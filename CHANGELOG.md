@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+- The README's Prerequisites section: minimum paid plans (Claude Pro, ChatGPT Plus) with links, a tools table including the superpowers plugin from Anthropic's official marketplace, and a summary of the GitHub and Codex configuration.
+- `docs/github-setup.md`: repo settings, branch protection, `gh` permissions, connecting Codex and turning on automatic code review, and notifications.
+
 ### Fixed
 - ShellCheck SC2163 in `bootstrap.sh` (intentional indirect export).
 - CI: `actions/checkout@v7` (Node 24); runner pinned to `ubuntu-24.04`.

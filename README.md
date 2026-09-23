@@ -20,6 +20,7 @@
 
 - [Why](#why)
 - [How it works](#how-it-works)
+- [Prerequisites](#prerequisites)
 - [Install](#install)
 - [Quick start](#quick-start)
 - [Commands and skills](#commands-and-skills)
@@ -54,14 +55,39 @@ The process was built and hardened on a real desktop-app project, running across
 
 The full rules are in [`template/docs/DEVELOPMENT-PROCESS.md`](template/docs/DEVELOPMENT-PROCESS.md). The kit installs that file into your repo, so both agents read it in every session.
 
-## Install
+## Prerequisites
 
-**Prerequisites:**
-- [Claude Code](https://claude.com/claude-code)
-- the [superpowers](https://github.com/obra/superpowers) plugin
-- the [Codex CLI](https://github.com/openai/codex) (0.156 or later), logged in with a ChatGPT plan
-- the [GitHub CLI](https://cli.github.com), authenticated
-- Git Bash on Windows, and Python 3
+### Paid subscriptions (both are required)
+
+| Service | Minimum plan | Why | Details |
+|---|---|---|---|
+| **Claude** | **Pro, $20/month.** Max (from $100/month) is recommended for unattended runs. | Claude Code is the orchestrator. The free claude.ai plan doesn't include Claude Code. Team, Enterprise and an API Console account also work. | [claude.com/pricing](https://claude.com/pricing) · [Claude Code setup](https://code.claude.com/docs/en/setup) |
+| **ChatGPT (Codex)** | **Plus, $20/month.** Pro is recommended for heavy review volume. | The Codex CLI and Codex's automatic GitHub code review. The free plan doesn't include either. | [Codex pricing](https://learn.chatgpt.com/docs/pricing) · [Codex on GitHub](https://learn.chatgpt.com/docs/third-party/github) |
+
+Both plans have usage limits, and unattended mode uses a lot of them: every PR costs a local Codex review, one or more PR-bot reviews, and Claude's triage. On the entry plans, expect to hit limits during long sessions. The kit handles this: it retries once, then tags you and moves on. Prices were checked in September 2026; follow the links for current figures.
+
+### Tools
+
+| Tool | Install | Check |
+|---|---|---|
+| [Claude Code](https://code.claude.com/docs/en/setup) | `irm https://claude.ai/install.ps1 \| iex` (Windows) or `curl -fsSL https://claude.ai/install.sh \| bash` | `claude --version` |
+| [superpowers](https://github.com/obra/superpowers) plugin, from Anthropic's official marketplace | In Claude Code: `/plugin install superpowers@claude-plugins-official` (if the marketplace is missing: `/plugin marketplace add anthropics/claude-plugins-official`) | `/plugin` lists `superpowers` |
+| [Codex CLI](https://github.com/openai/codex) 0.156 or later | `npm i -g @openai/codex`, then `codex login` with your ChatGPT account | `codex --version` |
+| [GitHub CLI](https://cli.github.com) | Install, then `gh auth login` and `gh auth refresh -s workflow` | `gh auth status` shows the `repo` and `workflow` scopes |
+| Git (Git Bash on Windows) and Python 3 | [git-scm.com](https://git-scm.com/downloads), [python.org](https://www.python.org/downloads/) | `git --version`, `python --version` |
+
+The kit depends on superpowers for brainstorming, specs, plans, TDD and subagent-driven builds. Install superpowers first.
+
+### GitHub and Codex configuration
+
+Before the first install, configure the repo and connect Codex. The full walkthrough is in **[docs/github-setup.md](docs/github-setup.md)**:
+1. **Repo:** Issues on, and head branches deleted automatically.
+2. **Default branch protected:** PR required, 0 approvals when you work alone, force pushes blocked.
+3. **`gh` token** has the `workflow` scope, so CI files can be pushed.
+4. **Codex connected to GitHub:** at [chatgpt.com/codex](https://chatgpt.com/codex), connect GitHub (this installs the ChatGPT Codex Connector app) and grant it the repo. Create an environment for the repo, then under **Settings → Code review** turn on **Code review** and **Automatic reviews**. Without this, PRs get no Codex review, and the loop can only tag you.
+5. **Notifications:** @mention notifications are on, so you see it when a PR is ready.
+
+## Install
 
 **As a Claude Code plugin (recommended):**
 
@@ -76,8 +102,6 @@ The full rules are in [`template/docs/DEVELOPMENT-PROCESS.md`](template/docs/DEV
 git clone https://github.com/anykolaiszyn/claude-codex-sdlc-kit
 claude-codex-sdlc-kit/scripts/bootstrap.sh path/to/your-repo --labels
 ```
-
-**For PR reviews,** turn on Codex's GitHub code review for your repo at chatgpt.com/codex → Settings.
 
 ## Quick start
 
@@ -143,6 +167,7 @@ The loop runs inside your Claude Code session. Closing the session stops it.
 
 ## Docs
 
+- [GitHub setup](docs/github-setup.md): the repo, branch protection, `gh` permissions, connecting Codex and notifications
 - [Manual setup guide](docs/setup-guide.md): step-by-step setup without the plugin
 - [Customising](docs/customizing.md): the quality bar, timings, roles, and stacks other than Node
 - [Lessons learned](docs/lessons-learned.md): why each rule exists
@@ -150,7 +175,7 @@ The loop runs inside your Claude Code session. Closing the session stops it.
 
 ## FAQ
 
-**Do I need both subscriptions?** Codex reviews are the point of the kit. Without Codex, the Roles table's fallbacks (Claude Haiku or Sonnet subagents) can take over implementation, but you lose the independent reviewer.
+**Do I need both subscriptions?** Yes, as designed: at least Claude Pro and ChatGPT Plus. Without Codex, the Roles table's fallbacks (Claude subagents) can do the reviews and implementation, but you lose the independent second model, which is the point of the kit. See [docs/customizing.md](docs/customizing.md#roles).
 
 **Does it work outside Node/TypeScript?** Yes. Only four commands are specific to a stack: test, check, and the two Codex runs. See [docs/customizing.md](docs/customizing.md).
 

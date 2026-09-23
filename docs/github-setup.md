@@ -13,7 +13,10 @@ Do this once per repo, before `/sdlc-init`. It takes about 10 minutes.
 
 ## 2. Protect the default branch
 
-Claude pushes with *your* GitHub account, so protect `main` against accidents:
+Claude pushes with *your* GitHub account, so protect `main` against accidents.
+
+> **Plan note:** branch protection and rulesets work on **public** repos on every GitHub plan. For **private** repos they need GitHub **Pro, Team or Enterprise** ([GitHub docs](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)). On a private repo with GitHub Free, skip this step. The kit's own rule, never commit on the default branch, still applies; nothing on GitHub enforces it.
+
 
 - **Settings → Rules → Rulesets → New branch ruleset** (or **Branches → Add branch protection rule**), targeting the default branch:
   - **Require a pull request before merging:** on.
@@ -24,12 +27,16 @@ Claude pushes with *your* GitHub account, so protect `main` against accidents:
 ## 3. The GitHub CLI and its permissions
 
 ```bash
-gh auth login                                   # HTTPS, log in through the browser
-gh auth refresh -h github.com -s workflow       # needed to push .github/workflows/*
-gh auth status                                  # Token scopes should include: repo, workflow, read:org
+gh auth login                                   # log in through the browser
+gh auth status                                  # Claude uses gh for issues, PRs and comments
 ```
 
-Run `gh auth refresh` **in your own terminal**, not through Claude Code's `!` prefix. It shows a one-time code to enter at https://github.com/login/device, and inside Claude Code that code scrolls out of sight and expires. Without the `workflow` scope, any push that adds or changes a workflow file is rejected with `refusing to allow an OAuth App to create or update workflow`.
+**Pushing workflow files** (`.github/workflows/*`) needs extra permission. Which one depends on how you push. Run `git remote get-url origin` to see:
+- **HTTPS using `gh`'s stored login:** run `gh auth refresh -h github.com -s workflow`. `gh auth status` should then list `workflow` among the token scopes.
+- **SSH (`git@github.com:…`):** pushes use your SSH key. The `gh` scope doesn't matter.
+- **A fine-grained personal access token** (for example in `GH_TOKEN`): give it **Workflows: Read and write** on the repo.
+
+Run `gh auth refresh` **in your own terminal**, not through Claude Code's `!` prefix. It shows a one-time code to enter at https://github.com/login/device, and inside Claude Code that code scrolls out of sight and expires. Without that permission, any push that adds or changes a workflow file is rejected with `refusing to allow an OAuth App to create or update workflow`.
 
 Also set your git identity, which is used for every commit Claude makes:
 ```bash
@@ -47,10 +54,8 @@ This needs a paid ChatGPT plan (Plus or higher; see [Prerequisites](../README.md
    - To add a repo later: **GitHub → Settings → Applications → ChatGPT Codex Connector → Configure**.
 3. **Create an environment for the repo** at https://chatgpt.com/codex/settings/environments. The defaults are fine for review. Add setup commands only if you also want Codex cloud to run your tests.
 4. **Turn on code review:** open Codex settings → **Code review**, then:
-   - turn on **Code review** for the repo
-   - turn on **Automatic reviews**, so every new PR is reviewed without a comment
-
-   The kit relies on both. The PR loop posts `@codex review` after each fix push and expects the first review to happen automatically.
+   - turn on **Code review** for the repo. This is **required**.
+   - turn on **Automatic reviews**. This is **recommended**: every new PR is reviewed without a comment. Without it, the PR loop requests the first review itself after two empty checks, about 20 minutes later. Later rounds always use `@codex review`.
 5. **Test it:** open a small PR and wait. Codex reacts with 👀, then posts a review, or a 👍 reaction when it finds nothing. Commenting `@codex review` should do the same.
 
 Official docs: [Use Codex with GitHub](https://learn.chatgpt.com/docs/third-party/github) and [Codex cloud](https://learn.chatgpt.com/docs/cloud).
@@ -59,10 +64,10 @@ Official docs: [Use Codex with GitHub](https://learn.chatgpt.com/docs/third-part
 
 ## 5. Notifications
 
-Unattended mode tags you with an `@mention` and assigns the PR to you when a PR is ready. To actually see those:
-- **Settings → Notifications** on github.com: turn on **Participating, @mentions and custom**, by web and mobile.
-- The GitHub mobile app gives you a push notification for each tag.
-- Claude Code also sends a push notification when the loop stops, if you've enabled notifications in Claude Code.
+When a PR's loop stops, Claude posts a summary that `@mention`s you and assigns the PR to you. **GitHub doesn't notify you about your own activity,** though. Claude acts through *your* account, so on a solo setup that mention and assignment **won't** produce a GitHub notification. They're markers, not alerts:
+- **The alert is Claude Code's push notification.** The loop sends one when it stops. Make sure notifications are enabled wherever you run Claude Code (`/config`), or that you have the mobile app connected.
+- **To find the PRs waiting for you,** use the filter `is:open is:pr assignee:@me`, or GitHub → Pull requests → **Assigned**.
+- **To get real GitHub notifications,** Claude has to post as a different identity, such as a bot account or a GitHub App token given to `gh`. Teams get this for free: when you're not the account Claude uses, your mentions notify you normally.
 
 ## 6. Labels and milestones
 
@@ -75,10 +80,10 @@ gh api repos/OWNER/REPO/milestones -f title="M1 — First usable slice"
 ## Checklist
 
 - [ ] Issues are on, and head branches are deleted automatically
-- [ ] Default branch protected: PR required, 0 approvals when solo, force pushes blocked
-- [ ] `gh auth status` shows the `repo`, `workflow` and `read:org` scopes
+- [ ] Default branch protected: PR required, 0 approvals when solo, force pushes blocked. Needs a public repo, or GitHub Pro or higher for a private one.
+- [ ] `gh` is logged in, and your push method can write workflow files
 - [ ] Git `user.name` and `user.email` are set
 - [ ] ChatGPT Codex Connector has access to the repo
-- [ ] Codex environment created; **Code review** and **Automatic reviews** turned on
+- [ ] Codex environment created; **Code review** on (and **Automatic reviews**, recommended)
 - [ ] A test PR got a Codex review or a 👍
-- [ ] @mention notifications reach you
+- [ ] Claude Code push notifications reach you (or you check `assignee:@me`)

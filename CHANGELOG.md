@@ -8,6 +8,12 @@ All notable changes to this project are documented here. The format follows [Kee
 - The README's Prerequisites section: minimum paid plans (Claude Pro, ChatGPT Plus) with links, a tools table including the superpowers plugin from Anthropic's official marketplace, and a summary of the GitHub and Codex configuration.
 - `docs/github-setup.md`: repo settings, branch protection, `gh` permissions, connecting Codex and turning on automatic code review, and notifications.
 
+### Fixed (Codex review of #2)
+- Automatic reviews is recommended, not required: the loop recovers a missing first review.
+- Workflow-file push permission now depends on the push method: HTTPS through `gh`, SSH, or a fine-grained token.
+- Branch protection on private repos needs GitHub Pro or higher.
+- Self-mentions don't notify on GitHub: Claude Code's push notification is the alert, and `assignee:@me` is the queue.
+
 ### Fixed
 - ShellCheck SC2163 in `bootstrap.sh` (intentional indirect export).
 - CI: `actions/checkout@v7` (Node 24); runner pinned to `ubuntu-24.04`.

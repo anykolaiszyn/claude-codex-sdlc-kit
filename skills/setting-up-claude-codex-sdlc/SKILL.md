@@ -11,8 +11,12 @@ The kit root is two directories above this skill's base directory (`<base>/../..
 
 1. **Check the machine** and report anything missing. Don't install it yourself.
    - `git --version`, `gh auth status`, `codex --version` (0.156+), `codex login status`, and `python --version`.
-   - `gh auth status` must show the `workflow` scope. If it doesn't, tell the user to run `gh auth refresh -h github.com -s workflow` **in their own terminal**; the device code expires unseen inside Claude Code.
-   - Ask the user to confirm the GitHub and Codex configuration in `docs/github-setup.md` (kit root): Codex connected to the repo, and **Code review** plus **Automatic reviews** turned on. Without it, the PR loop can't work.
+   - **Pushing workflow files.** The requirement depends on how the repo pushes. Check with `git remote get-url origin`:
+     - **HTTPS with `gh`'s stored OAuth token:** `gh auth status` should list the `workflow` scope. If it's missing, the user runs `gh auth refresh -h github.com -s workflow` **in their own terminal**; inside Claude Code the device code expires unseen.
+     - **SSH remote, or a fine-grained token in `GH_TOKEN`:** the `gh` scope doesn't apply, so don't flag it. The first push that adds a workflow is the real test.
+   - Ask the user to confirm the Codex GitHub configuration in `docs/github-setup.md` (kit root):
+     - **Codex connected to the repo, with Code review on:** required.
+     - **Automatic reviews:** recommended, not required. Without it, the PR loop requests the first review itself after two empty checks, so the first round is only slower.
    - The superpowers plugin must be installed. If its skills are missing from your skill list, tell the user to run `/plugin install superpowers@claude-plugins-official`.
 2. **Work out the answers** from the repo before asking the user. Look at `package.json` scripts, `pyproject.toml`, `Makefile`, `go.mod` and the CI config.
    - Answers: `PROJECT_NAME`, `PROJECT_PITCH`, `MAIN_BRANCH`, `TEST_CMD`, `CHECK_CMD`, `CODEX_TEST_CMD`, `CODEX_CHECK_CMD`, `REVIEW_PRIORITIES`, `M1_TITLE`.

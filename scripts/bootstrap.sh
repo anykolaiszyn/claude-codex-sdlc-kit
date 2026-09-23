@@ -23,7 +23,7 @@ git -C "$target" rev-parse --git-dir >/dev/null 2>&1 || { echo "$target is not a
 ask() { # ask VAR "question" "default"
   local v="${!1:-}"
   if [ -z "$v" ]; then read -r -p "$2 [$3]: " v; v="${v:-$3}"; fi
-  printf -v "$1" '%s' "$v"; export "$1"
+  printf -v "$1" '%s' "$v"; export "${1?}"   # indirect export of the named variable
 }
 ask PROJECT_NAME      "Project name"                         "$(basename "$(cd "$target" && pwd)")"
 ask PROJECT_PITCH     "One-sentence pitch"                   "TODO: one-sentence pitch."

@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Fixed
+- ShellCheck SC2163 in `bootstrap.sh` (intentional indirect export).
+- CI: `actions/checkout@v7` (Node 24); runner pinned to `ubuntu-24.04`.
+
 ## [0.1.0] — 2026-09-23
 
 ### Added

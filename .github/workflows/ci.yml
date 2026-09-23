@@ -5,9 +5,9 @@ on:
   pull_request:
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # pinned: ubuntu-latest moves to 26 on 2026-10-19
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: ShellCheck
         run: shellcheck scripts/*.sh tests/*.sh skills/pairing-with-codex-cli/run-codex.sh
       - name: Manifests are valid JSON

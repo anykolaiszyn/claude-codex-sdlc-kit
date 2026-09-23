@@ -12,6 +12,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Automatic reviews is recommended, not required: the loop recovers a missing first review.
 - Workflow-file push permission now depends on the push method: HTTPS through `gh`, SSH, or a fine-grained token.
 - Branch protection on private repos needs GitHub Pro or higher.
+- Branch protection must not exempt admins: use a ruleset with an empty bypass list, or "Do not allow bypassing the above settings" on a classic rule.
 - Self-mentions don't notify on GitHub: Claude Code's push notification is the alert, and `assignee:@me` is the queue.
 
 ### Fixed

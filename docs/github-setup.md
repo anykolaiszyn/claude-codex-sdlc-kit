@@ -17,8 +17,12 @@ Claude pushes with *your* GitHub account, so protect `main` against accidents.
 
 > **Plan note:** branch protection and rulesets work on **public** repos on every GitHub plan. For **private** repos they need GitHub **Pro, Team or Enterprise** ([GitHub docs](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)). On a private repo with GitHub Free, skip this step. The kit's own rule, never commit on the default branch, still applies; nothing on GitHub enforces it.
 
+**Make the rule apply to you too.** You own the repo, so you're its administrator, and Claude pushes as you. A rule that admins can bypass protects nothing here.
 
-- **Settings → Rules → Rulesets → New branch ruleset** (or **Branches → Add branch protection rule**), targeting the default branch:
+- **Recommended:** go to **Settings → Rules → Rulesets → New branch ruleset**, target the default branch, and set **Enforcement status: Active**. **Leave the Bypass list empty.** Rulesets exempt no one unless you add them, so the rule applies to your account.
+- **Classic alternative:** go to **Settings → Branches → Add branch protection rule** and turn on **Do not allow bypassing the above settings**. By default, classic rules [don't apply to admins](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches), so without this option a direct `git push origin main` still succeeds.
+
+Either way, turn on:
   - **Require a pull request before merging:** on.
   - **Required approvals: 0 when you work alone.** GitHub doesn't let you approve your own PR, and Claude's PRs are opened as you. Merging is the approval. Teams can require 1.
   - **Require status checks to pass:** add your CI job once it has run at least once.
@@ -80,7 +84,7 @@ gh api repos/OWNER/REPO/milestones -f title="M1 — First usable slice"
 ## Checklist
 
 - [ ] Issues are on, and head branches are deleted automatically
-- [ ] Default branch protected: PR required, 0 approvals when solo, force pushes blocked. Needs a public repo, or GitHub Pro or higher for a private one.
+- [ ] Default branch protected: PR required, 0 approvals when solo, force pushes blocked, **no bypass for admins** (a ruleset with an empty bypass list, or "Do not allow bypassing"). Needs a public repo, or GitHub Pro or higher for a private one.
 - [ ] `gh` is logged in, and your push method can write workflow files
 - [ ] Git `user.name` and `user.email` are set
 - [ ] ChatGPT Codex Connector has access to the repo

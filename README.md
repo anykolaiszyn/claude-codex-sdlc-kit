@@ -82,7 +82,7 @@ The kit depends on superpowers for brainstorming, specs, plans, TDD and subagent
 
 Before the first install, configure the repo and connect Codex. The full walkthrough is in **[docs/github-setup.md](docs/github-setup.md)**:
 1. **Repo:** Issues on, and head branches deleted automatically.
-2. **Default branch protected:** PR required, 0 approvals when you work alone, force pushes blocked. This is free on public repos; private repos need GitHub Pro or higher.
+2. **Default branch protected, including against you:** PR required, 0 approvals when you work alone, force pushes blocked, and no admin bypass. Claude pushes as you, the repo's admin. This is free on public repos; private repos need GitHub Pro or higher.
 3. **Pushing workflow files:** with HTTPS through `gh`, add the `workflow` scope. SSH keys and fine-grained tokens are covered in the guide.
 4. **Codex connected to GitHub:** at [chatgpt.com/codex](https://chatgpt.com/codex), connect GitHub (this installs the ChatGPT Codex Connector app) and grant it the repo. Create an environment for the repo, then under **Settings → Code review** turn on **Code review** (required) and **Automatic reviews** (recommended). Without Code review, PRs get no Codex review, and the loop can only tag you.
 5. **Notifications:** GitHub doesn't notify you about your own activity, and Claude acts as you. Claude Code's push notification is your alert, and `assignee:@me` lists the waiting PRs.

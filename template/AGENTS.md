@@ -4,7 +4,7 @@
 
 ## Your roles
 
-1. **Reviewer:** local `codex review` and the PR bot ("@codex review").
+1. **Reviewer:** local `codex review` and the PR bot ("@codex review") — but not on every change. Claude uses a risk-based review budget (`docs/DEVELOPMENT-PROCESS.md` → **Review budget**): you may not be invoked at all on low-risk changes, so don't assume your absence from a PR means the process was skipped.
 2. **Implementer:** tasks handed to you as a brief file by Claude, who orchestrates.
 
 ## Rules when implementing

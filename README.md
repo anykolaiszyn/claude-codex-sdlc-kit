@@ -1,6 +1,6 @@
 # Claude + Codex SDLC Kit
 
-**Two AI agents, one disciplined process.** Claude Code orchestrates: it designs, plans, rules on findings, and makes every commit. The OpenAI Codex CLI is an independent reviewer and a low-cost implementer. GitHub issues hold the backlog, and a PR follow-up loop keeps your PRs moving while you're away. Merging is always yours.
+**Two AI agents, one disciplined process.** Claude Code orchestrates: it designs, plans, rules on findings, and makes every commit. The OpenAI Codex CLI is an independent reviewer and a low-cost implementer when the task warrants it. GitHub issues hold the backlog, and a PR follow-up loop keeps your PRs moving while you're away. Merging is always yours. The process is intentionally flexible: low-risk work stays cheap, high-risk work gets the deeper review budget, and any usage limit falls back without silently skipping the human approval gate.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](#install)
@@ -78,6 +78,16 @@ Both plans have usage limits, and unattended mode uses a lot of them: every PR c
 
 The kit depends on superpowers for brainstorming, specs, plans, TDD and subagent-driven builds. Install superpowers first.
 
+### Flexible agent policy
+
+The kit is designed to be universal and cost-aware. In practice, that means:
+- start with the cheapest viable model or review path
+- escalate only when the change is risky, ambiguous, or cross-cutting
+- keep Codex for high-value reviews rather than blanket use
+- let each project tune the balance between speed, safety, and quota cost
+
+Each installed repo states its own tolerance in `docs/ARCHITECTURE.md` → **Review budget** (the `REVIEW_BUDGET` answer at install time), and every PR names the tier it used (`Review budget: <tier> — <why>`) so the call is visible, not just an inline judgment nobody can check. The canonical risk-tier table and the failover rules live in **[template/docs/DEVELOPMENT-PROCESS.md](template/docs/DEVELOPMENT-PROCESS.md)**; **[docs/customizing.md](docs/customizing.md)** covers tuning it per project.
+
 ### GitHub and Codex configuration
 
 Before the first install, configure the repo and connect Codex. The full walkthrough is in **[docs/github-setup.md](docs/github-setup.md)**:
@@ -146,7 +156,7 @@ When you come back and have merged the PRs you're happy with:
 | `CLAUDE.md` | Claude | Non-negotiables, and a pointer to the process |
 | `AGENTS.md` | Codex | Its roles, the implementer rules, and review guidelines (every finding marked blocking or edge case) |
 | `docs/DEVELOPMENT-PROCESS.md` | both | Loop, roles, triage, PR loop, issues, unattended mode, session start |
-| `docs/ARCHITECTURE.md` | both | Brief, stack, milestones and the **quality bar** (filled in during brainstorming) |
+| `docs/ARCHITECTURE.md` | both | Brief, stack, milestones, the **quality bar**, and the **review budget** (filled in during brainstorming) |
 | `docs/ROADMAP.md` | both | A readable view of the milestones (issues are the source of truth) |
 | `.claude/skills/pairing-with-codex-cli/` | Claude | A repo copy of the skill, so teammates without the plugin get it too |
 | `.github/ISSUE_TEMPLATE/` | you and Claude | Backlog-finding and milestone-overview templates |

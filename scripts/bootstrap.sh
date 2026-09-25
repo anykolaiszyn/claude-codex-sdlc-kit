@@ -5,7 +5,7 @@
 #
 # Answers come from env vars (prompted for when unset):
 #   PROJECT_NAME  PROJECT_PITCH  MAIN_BRANCH  TEST_CMD  CHECK_CMD
-#   CODEX_TEST_CMD  CODEX_CHECK_CMD  REVIEW_PRIORITIES  M1_TITLE
+#   CODEX_TEST_CMD  CODEX_CHECK_CMD  REVIEW_PRIORITIES  REVIEW_BUDGET  M1_TITLE
 # Existing files are never overwritten; they are reported so you can merge by hand.
 set -euo pipefail
 kit="$(cd "$(dirname "$0")/.." && pwd)"
@@ -33,6 +33,7 @@ ask CHECK_CMD         "Typecheck/lint command"               "npm run typecheck"
 ask CODEX_TEST_CMD    "Test command Codex runs (Windows: .cmd shims)" "npx.cmd vitest run"
 ask CODEX_CHECK_CMD   "Check command Codex runs"             "npx.cmd tsc --noEmit"
 ask REVIEW_PRIORITIES "What reviewers must prioritise"       "correctness of user-visible output, data loss, security, and validation gaps."
+ask REVIEW_BUDGET     "Codex review budget (risk tolerance)" "risk-based (default): skip Codex on docs/comments/tests-only changes, one targeted review on a localized fix, full review plus PR loop on auth, permissions, data, migrations, or public APIs."
 ask M1_TITLE          "First milestone title (without 'M1 — ')" "${milestone#M1 — }"
 [ -n "$M1_TITLE" ] || M1_TITLE="TODO"
 

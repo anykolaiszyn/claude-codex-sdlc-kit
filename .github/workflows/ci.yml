@@ -14,3 +14,5 @@ jobs:
         run: for f in .claude-plugin/*.json; do python3 -m json.tool "$f" >/dev/null && echo "ok $f"; done
       - name: Bootstrap smoke test
         run: bash tests/bootstrap.test.sh
+      - name: Codex wrapper tests
+        run: bash tests/run-codex.test.sh

@@ -4,7 +4,7 @@
 |---|---|---|
 | Codex says it "can't run tests" on Windows | PowerShell blocks the `.ps1` shims | Use `npx.cmd`/`npm.cmd` in `AGENTS.md` and in briefs |
 | `codex review` errors about a prompt | `--base/--uncommitted/--commit` take no prompt | Put the guidance in `AGENTS.md` instead |
-| A local review fails with a usage-limit error | Your ChatGPT Codex quota is used up | Wait for the reset, or have a Claude Sonnet subagent do the review; note this on the PR |
+| A local review fails with a usage-limit error | Your ChatGPT Codex quota is used up | Don't wait on the PR loop's 600 s retry — quota resets take hours to days. Fall back to a Claude Sonnet subagent review immediately, note the fallback on the PR, and try Codex again next PR or session. See `docs/DEVELOPMENT-PROCESS.md` → **Failover and quota handling** |
 | The PR bot never answers `@codex review` | Code review isn't enabled for the repo, or the bot is over quota | Enable it at chatgpt.com/codex → Settings. The loop re-posts once, then tags you |
 | The PR bot replies "Something went wrong" | A transient error on the bot's side | The loop re-posts once per round |
 | Old findings are triaged again | Comments were matched by `commit_id` | Match by `pull_request_review_id` |

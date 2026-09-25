@@ -17,3 +17,9 @@ Each milestone gets an overview issue (goal + acceptance checklist) and a row in
 ## Quality bar
 
 What makes a finding **blocking** in this project (Codex and Claude reviewers both read this):
+
+## Review budget
+
+How aggressively this project uses Codex review (both agents read this; see `docs/DEVELOPMENT-PROCESS.md` for the risk tiers it refers to):
+
+{{REVIEW_BUDGET}}

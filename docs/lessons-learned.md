@@ -12,6 +12,11 @@ Every rule in the kit exists because something went wrong without it. These are 
 - **Check `codex <cmd> --help` before using a flag.** For example, `exec` has no `--ask-for-approval` flag.
 - **Run reviews in the background.** Use the Bash tool's background option. A shell `&` never reports back.
 
+## Review budget
+
+- **A risk tier that's only an inline judgment call can't be checked.** Claude both writes the diff and decides whether it's low-risk enough to skip Codex, so the decision needs to leave a trace. Stating `Review budget: <tier> — <why>` in every PR description turns a silent, unverifiable call into something a human can spot-check on review.
+- **"Universal and cost-aware" needs a real per-project knob, not just prose.** Without a bootstrap answer or an `ARCHITECTURE.md` field, "let each project tune the balance" only means "someone edits the shared docs by hand," which nobody does. `REVIEW_BUDGET` gives every install its own stated tolerance.
+
 ## Triage
 
 - **Probe before acting.** Some Codex findings turn out to be invalid. "Fixing" them anyway adds bugs and churn. A finding's severity doesn't make it real; a probe does.
@@ -21,7 +26,7 @@ Every rule in the kit exists because something went wrong without it. These are 
 ## The PR loop
 
 - **Match comments to a review by `pull_request_review_id`, never by the comment's `commit_id`.** GitHub moves an old comment's `commit_id` forward when its lines haven't changed, so old findings look new.
-- **The Codex bot hits usage limits** and sometimes never answers. Each round allows one retry, shared by errors, quota failures and silence. After three empty checks, Claude tags you and moves on instead of spinning.
+- **The Codex bot hits usage limits** and sometimes never answers. A transient error or silence shares the round's one retry on the normal 600 s cadence; after three empty checks, Claude tags you and moves on instead of spinning. A genuine quota-exhaustion response is a different failure shape — quota resets run hours to days, so it doesn't share that retry; it fails over to a Claude-equivalent review immediately instead of polling a quota that won't be back for a while. Conflating the two either wastes checks on a quota that isn't returning soon, or stalls the loop waiting on it.
 - **Stop rules keep it bounded.** The loop stops on a 👍, on a round with no blocking findings, or after 3 fix rounds.
 - **Tag, don't wait.** The loop @mentions you, assigns the PR to you and moves on to the next eligible issue, so a quiet reviewer never stalls the queue.
 

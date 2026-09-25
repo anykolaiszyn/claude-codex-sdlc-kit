@@ -28,12 +28,25 @@ Only four answers are specific to a stack:
 
 On macOS or Linux, use the same commands for Codex as for yourself.
 
+## Codex budget, model policy, and failover
+
+The risk-tier table, the value-first model policy, the failover rules (transient error vs. quota exhaustion), and the requirement to state `Review budget: <tier> — <why>` in every PR all live in one place so they can't drift: **`docs/DEVELOPMENT-PROCESS.md`** → **Review budget** and **Failover and quota handling**. Both agents read that file every session; this page only covers what's specific to *tuning* it per project.
+
+### Set your project's default here, not by editing prose
+
+`docs/ARCHITECTURE.md` → **Review budget** (filled in during brainstorming, from the `REVIEW_BUDGET` bootstrap answer) is where a project states its own tolerance — for example, "review every PR regardless of size" for a small production API, or "skip Codex below one file changed" for an internal tool. `docs/DEVELOPMENT-PROCESS.md`'s table is the fallback for anything that field doesn't cover.
+
+Principles this tuning should follow:
+- Start with the smallest viable model and the smallest viable review; escalate on risk, not habit.
+- Keep the independent reviewer only where the task genuinely warrants it — the goal is the best value combination for the risk, not "always use both agents."
+- Some repos will use Codex on nearly everything; others only on high-risk work. Both are correct uses of the kit.
+
 ## Timings and limits
 
 Change these in `docs/DEVELOPMENT-PROCESS.md` and in `skills/pairing-with-codex-cli/SKILL.md`, and keep the two in step:
 - the wait between PR checks: **600 s**
 - fix rounds before the loop stops and tags you: **3**
-- retries per round, shared by errors, quota failures and silence: **1**
+- retries per round on the 600 s cadence, shared by transient errors and silence: **1** — a usage-limit/quota response does **not** use this retry; it fails over immediately (see **Failover and quota handling** in `docs/DEVELOPMENT-PROCESS.md`)
 - empty checks before the loop tags you: **3**
 
 ## Roles

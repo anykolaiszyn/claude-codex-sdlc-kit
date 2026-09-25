@@ -8,7 +8,7 @@ How work gets done in this repo. Claude orchestrates; Codex is a second reviewer
 2. **Design.** `superpowers:brainstorming`, then a spec in `docs/superpowers/specs/`, approved by the user.
 3. **Plan.** `superpowers:writing-plans`. When the plan is written, create one GitHub issue per plan task and link them from the milestone's overview issue.
 4. **Build.** `superpowers:subagent-driven-development` on a feature branch (never `{{MAIN_BRANCH}}`), using the roles below.
-5. **Before the PR.** Local `codex review --base <the PR's base branch>` (usually `{{MAIN_BRANCH}}`; the parent branch when stacked) via the `pairing-with-codex-cli` skill's `.claude/skills/pairing-with-codex-cli/run-codex.sh`, triaged below. Then the final whole-branch Claude review and its single fix wave.
+5. **Before the PR.** Classify the change's risk tier (see **Review budget** below) and review accordingly: low-risk work can skip Codex entirely, medium-risk work gets a focused local `codex review --base <the PR's base branch>` (usually `{{MAIN_BRANCH}}`; the parent branch when stacked) via the `pairing-with-codex-cli` skill's `.claude/skills/pairing-with-codex-cli/run-codex.sh`, and high-risk work gets the full review plus the usual follow-up loop. State the tier and why in the PR description. Then perform the final whole-branch Claude review and its single fix wave.
 6. **PR.** The body lists `Closes #N` for every issue the branch completes. Run the PR follow-up loop until it stops.
 7. **Merge** by the user. The same PR ticks off finished items in `docs/ROADMAP.md`.
 
@@ -28,7 +28,32 @@ How work gets done in this repo. Claude orchestrates; Codex is a second reviewer
 Rules everywhere:
 - Only Claude commits and pushes. Every commit ends with the attribution line from Claude Code's system prompt. Codex-written code is noted "Implemented by Codex CLI" in the commit body.
 - On Windows, Codex runs commands through PowerShell, where `.ps1` shims are blocked: briefs say `npx.cmd` / `npm.cmd`.
-- No Codex review per task: it takes about 5–10 minutes and duplicates the per-task Claude review.
+- Use Codex by risk and scope, not by default (see **Review budget** below). Review only the changed surface area; don't run a broad branch review when a single subsystem or a small delta changed.
+- If the task needs broad context, judgment or multi-file trade-offs, keep it with Claude instead of delegating it to Codex.
+- The default is a value-first model policy: start with the cheapest model that can validate the change, then escalate to a stronger model only when risk, ambiguity, or impact rises.
+- The process must remain universal. A repo may use Codex heavily, lightly, or only on high-risk work; the deciding factor is the risk-adjusted value of the review, not a blanket rule.
+- The PR remains the human-in-the-loop gate. Codex can suggest and review, but the final merge is always a person-approved action.
+- If a review or PR bot hits a limit, see **Failover and quota handling** below. Never silently drop the review step.
+
+## Review budget
+
+Risk tier decides how much independent review a change gets, for both Codex delegation and the pre-PR/PR-gate reviews. The tier is not just an inline judgment call: **state it, with a one-line reason, in the PR description** (`Review budget: <tier> — <why>`), so a human skimming the PR can see and challenge the call instead of it being invisible.
+
+| Risk tier | Typical work | Codex use | Claude use |
+|---|---|---|---|
+| Low | Docs, comments, formatting-only refactors, tiny non-runtime cleanup | Skip, unless the change touches a public contract or user-visible behaviour | Local checks and final review |
+| Medium | One module, one feature area, or a localized bug fix | One focused `codex review --base <base>` or a single bounded `exec` brief, scoped to the changed files | Design, scope, and final sign-off |
+| High | Auth, permissions, data migrations, contracts, crypto, or anything touching multiple subsystems | Full review and the standard PR follow-up loop | Final branch review, approvals, and risk triage |
+
+For stacked PRs, review the delta against the relevant base branch; don't repeat a full review of already-reviewed code. A project can tune its own default tolerance in `docs/ARCHITECTURE.md` → **Review budget**, filled in during brainstorming; this table is the fallback when that field doesn't cover a case.
+
+## Failover and quota handling
+
+A transient hiccup and an exhausted quota need different responses; conflating them either wastes a check on a quota that won't reset for hours, or stalls the loop waiting on it.
+
+- **Transient error or silence** (a bot glitch, a dropped response): use the PR follow-up loop's normal retry — one retry per round, 600 seconds apart. Keep polling on that cadence; it's sized for a minutes-scale hiccup, and it's covered in the PR follow-up loop below.
+- **Usage limit / quota exhausted** (the CLI or bot reports it's out of quota): quota resets run hours to days, not minutes. Do not keep polling on the 600-second cadence. Fall back immediately, for this round, to a Claude-equivalent review (or the other side's local/CLI review, if only one of CLI/bot is out). Note the fallback in the PR. Try Codex again on the next PR or session, not within this wait loop.
+- Either way: a limit pauses or reroutes the review, it never removes it, and it never authorizes a merge without the human.
 
 ## Triage
 
@@ -53,7 +78,7 @@ Runs in the Claude Code session with self-scheduled wake-ups.
    - Each round has **one retry**, shared by the error and silence paths; it resets when a new blocking fix is pushed.
 4. If a blocking fix was pushed: post "@codex review" and go back to step 2. If the round only produced backlog issues or invalid findings, it has met the stopping rule; go to step 6.
 5. **Stop** when Codex reacts 👍, or a round has no blocking findings, or after 3 fix rounds (then tag the user).
-6. On stopping, post one PR summary comment: fixed findings with commits, backlog issues opened, invalid findings, and any blocking findings **still open** (listed first, if the 3-round cap was hit). Then tag the user (@mention them in the summary comment, assign the PR to them, and send a push notification), then move on to the next available issue (see Unattended mode). Never stop to ask.
+6. On stopping, post one PR summary comment: the review budget tier and reason (from the PR description), fixed findings with commits, backlog issues opened, invalid findings, and any blocking findings **still open** (listed first, if the 3-round cap was hit). If a quota failover happened, say so and name the fallback used. Then tag the user (@mention them in the summary comment, assign the PR to them, and send a push notification), then move on to the next available issue (see Unattended mode). Never stop to ask.
 
 ## Issues and roadmap
 

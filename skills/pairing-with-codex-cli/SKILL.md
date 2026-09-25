@@ -13,11 +13,16 @@ Claude orchestrates and owns every decision and every commit. Codex is an indepe
 
 | Moment | Use | Why |
 |---|---|---|
-| Before opening or updating a PR | `review --base <PR base branch>` | Finds bug classes Claude reviewers miss |
-| After a large uncommitted change | `review --uncommitted` | Cheap second look before committing |
-| Well-specified task with runnable tests | `exec` delegation | Moves implementation off Claude's quota |
-| Every task in a subagent loop | **No** | About 5–10 min per run; it duplicates per-task review |
-| Work that needs broad context or judgment | **No** delegation | Keep it with Claude |
+| Low-risk change (docs, comments, trivial refactor, tiny non-runtime cleanup) | Usually **No** review | The cost is rarely worth it |
+| Medium-risk localized change | `review --base <PR base branch>` | Finds bug classes Claude reviewers miss without the full PR loop |
+| Large uncommitted diff with real risk | `review --uncommitted` | Cheap second look before committing |
+| Well-specified task with runnable tests and narrow scope | `exec` delegation | Moves implementation off Claude's quota when the task is bounded |
+| Broad or judgment-heavy work | **No** delegation | Keep it with Claude |
+| Every task in a subagent loop | **No** by default | About 5–10 min per run; it duplicates the per-task Claude review |
+
+## Review budget
+
+Use a risk-based budget, not a fixed default: skip Codex on low-risk changes, one targeted `review --base <base>` on medium-risk ones, the full review and PR loop on high-risk ones. The canonical risk-tier table (and the requirement to state `Review budget: <tier> — <why>` in the PR) is in `docs/DEVELOPMENT-PROCESS.md` → **Review budget** — read it there rather than re-deriving the tiers here. Always review the changed surface, not the whole branch; for stacked PRs, review only the delta against the relevant base branch.
 
 ## Running it
 
@@ -74,11 +79,18 @@ After pushing, post "@codex review" (a new PR is reviewed automatically), then s
 - nothing yet → wait again; after the second empty check re-post "@codex review" if the single retry is unused (covers a lost automatic review); after three, tag the user and move on
 - one retry per round, shared by both paths; it resets when a new blocking fix is pushed
 
+**Limit handling and failover (required):** see `docs/DEVELOPMENT-PROCESS.md` → **Failover and quota handling** for the full rule. Summary:
+- A **transient error or silence** ("Something went wrong", or nothing yet) uses this loop's normal retry: one per round, on the existing 600-second cadence.
+- A **usage-limit / quota-exhausted** response is a different failure shape: quota resets run hours to days, not 600 seconds, so do not keep polling this loop's cadence waiting on it. Fall back immediately, for this round, to a Claude-equivalent review (or the CLI, if only the bot is out, or vice versa), note the fallback in the PR, and try Codex again next PR or session.
+- Either way: never silently skip the review step, and never force a merge with no human approval. A limit pauses or reroutes the check; it doesn't erase it.
+
 **End of every triage round (required checklist, even when your summary is short):**
 - [ ] **If a blocking fix was pushed:** post "@codex review" on the PR, then self-schedule the next wake-up 600 seconds later (`ScheduleWakeup`) before ending your turn.
 - [ ] **If no blocking fix was pushed** (only backlog issues or invalid findings): the round meets the stopping rule. Post the summary comment, and don't trigger another review.
+- [ ] **If the change was low-risk and already covered by tests:** do not re-trigger a full review cycle just because a PR is open; keep the loop narrow and stop early.
+- [ ] **If review services are unavailable:** apply the transient-vs-quota split above, preserve the human approval gate, and resume later when limits clear.
 
-**Stop** when Codex reacts 👍, or a round has no blocking findings, or after 3 fix rounds (then tag the user). Finish with one PR summary comment: fixes with commits, issues opened, invalid findings, and any blocking findings still open (listed first). Then tag the user (@mention them in the summary comment, assign the PR to them, and send a push notification), then move on to the next available issue (see Unattended mode). Never stop to ask.
+**Stop** when Codex reacts 👍, or a round has no blocking findings, or after 3 fix rounds (then tag the user). Finish with one PR summary comment: the review budget tier and reason (from the PR description), fixes with commits, issues opened, invalid findings, and any blocking findings still open (listed first); if a quota failover happened, name it. Then tag the user (@mention them in the summary comment, assign the PR to them, and send a push notification), then move on to the next available issue (see Unattended mode). Never stop to ask.
 
 ## Common mistakes
 

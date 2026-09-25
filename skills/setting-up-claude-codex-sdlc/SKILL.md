@@ -19,9 +19,9 @@ The kit root is two directories above this skill's base directory (`<base>/../..
      - **Automatic reviews:** recommended, not required. Without it, the PR loop requests the first review itself after two empty checks, so the first round is only slower.
    - The superpowers plugin must be installed. If its skills are missing from your skill list, tell the user to run `/plugin install superpowers@claude-plugins-official`.
 2. **Work out the answers** from the repo before asking the user. Look at `package.json` scripts, `pyproject.toml`, `Makefile`, `go.mod` and the CI config.
-   - Answers: `PROJECT_NAME`, `PROJECT_PITCH`, `MAIN_BRANCH`, `TEST_CMD`, `CHECK_CMD`, `CODEX_TEST_CMD`, `CODEX_CHECK_CMD`, `REVIEW_PRIORITIES`, `M1_TITLE`.
+   - Answers: `PROJECT_NAME`, `PROJECT_PITCH`, `MAIN_BRANCH`, `TEST_CMD`, `CHECK_CMD`, `CODEX_TEST_CMD`, `CODEX_CHECK_CMD`, `REVIEW_PRIORITIES`, `REVIEW_BUDGET`, `M1_TITLE`.
    - On Windows, the Codex commands use `.cmd` shims (`npx.cmd`, `npm.cmd`).
-   - Ask only for what the repo can't tell you, typically the pitch and the review priorities. Ask one question at a time.
+   - Ask only for what the repo can't tell you, typically the pitch and the review priorities. `REVIEW_BUDGET` has a sensible risk-based default (see `scripts/bootstrap.sh`); only ask about it if the user has an unusually cheap or unusually risk-averse project, e.g. "review every PR regardless of size" or "skip Codex below one file changed". Ask one question at a time.
 3. **Branch first:** `git switch -c process/claude-codex-sdlc`. Never install on the default branch.
 4. **Run the bootstrap** with the answers as env vars:
    `bash "<kit>/scripts/bootstrap.sh" . --labels [--milestone "M1 — <title>"]`

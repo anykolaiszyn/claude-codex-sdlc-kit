@@ -17,13 +17,13 @@ How work gets done in this repo. Claude orchestrates; Codex is a second reviewer
 | Role | Who | Rules |
 |---|---|---|
 | Orchestrator: design, specs, plans, rulings, every commit and push | Claude (main session) | Holds the approval gates with the user; the only agent that touches git history or GitHub |
-| Implementation where the plan contains the code | Codex `exec` (default) | Brief file in the skill's format; test-first; never touches git; Claude reviews the diff and reruns the tests |
-| Same, fallback | Claude Haiku subagent | When Codex can't run the tests, or a brief fails two rounds |
+| Implementation where the plan contains the code | `implementation` role in `.claude/agents.json` (default: Codex `exec`) | Brief file in the skill's format; test-first; never touches git; Claude reviews the diff and reruns the tests |
+| Same, fallback | Claude Haiku subagent | When the resolved provider can't run the tests, or a brief fails two rounds |
 | Implementation needing judgment or spanning files | Claude Sonnet subagent | Per `superpowers:subagent-driven-development` |
-| Per-task review against the spec | Claude Sonnet | Needs the task brief, spec and global constraints |
-| Bug hunt before a PR is opened or updated | Codex `review --base <base>` (local) | Every finding probed before acting |
-| Final whole-branch review | Claude Opus | Once per branch |
-| PR gate | Codex cloud ("@codex review") | PR follow-up loop |
+| Per-task review against the spec | `task_review` role (default: Claude Sonnet) | Needs the task brief, spec and global constraints |
+| Bug hunt before a PR is opened or updated | `pre_pr_review` role (default: Codex `review --base <base>`, local) | Every finding probed before acting |
+| Final whole-branch review | `final_review` role (default: Claude Opus) | Once per branch |
+| PR gate | `pr_gate` role (default: Codex cloud, "@codex review") | PR follow-up loop |
 
 Rules everywhere:
 - Only Claude commits and pushes. Every commit ends with the attribution line from Claude Code's system prompt. Codex-written code is noted "Implemented by Codex CLI" in the commit body.
@@ -34,6 +34,14 @@ Rules everywhere:
 - The process must remain universal. A repo may use Codex heavily, lightly, or only on high-risk work; the deciding factor is the risk-adjusted value of the review, not a blanket rule.
 - The PR remains the human-in-the-loop gate. Codex can suggest and review, but the final merge is always a person-approved action.
 - If a review or PR bot hits a limit, see **Failover and quota handling** below. Never silently drop the review step.
+
+## Provider assignment
+
+Each role in the table above resolves to a provider through `.claude/agents.json`: an ordered list of provider names per role, and an `enabled` flag on each provider (see the file itself for the schema). Claude resolves a role by walking its list and taking the first entry with `enabled: true`; for a `local` (OpenAI-compatible HTTP) provider, an unreachable endpoint at call time counts the same as "not usable" and falls through to the next entry. If nothing in a role's chain is usable, apply the **Review budget** and **Failover and quota handling** rules below exactly as if the default provider had hit its limit.
+
+A repo with no `.claude/agents.json` behaves exactly as this table's defaults describe — the file is additive, not required.
+
+To pause a provider without editing every role that uses it (for example, to stop spending a ChatGPT quota you're using elsewhere), flip that provider's own `enabled` flag once in `.claude/agents.json`. `codex-cli` (the local CLI) and `codex-cloud-bot` (the PR bot) are separate flags on purpose, since you may want to keep one running while pausing the other.
 
 ## Review budget
 
@@ -54,6 +62,7 @@ A transient hiccup and an exhausted quota need different responses; conflating t
 - **Transient error or silence** (a bot glitch, a dropped response): use the PR follow-up loop's normal retry — one retry per round, 600 seconds apart. Keep polling on that cadence; it's sized for a minutes-scale hiccup, and it's covered in the PR follow-up loop below.
 - **Usage limit / quota exhausted** (the CLI or bot reports it's out of quota): quota resets run hours to days, not minutes. Do not keep polling on the 600-second cadence. Fall back immediately, for this round, to a Claude-equivalent review (or the other side's local/CLI review, if only one of CLI/bot is out). Note the fallback in the PR. Try Codex again on the next PR or session, not within this wait loop.
 - Either way: a limit pauses or reroutes the review, it never removes it, and it never authorizes a merge without the human.
+- A provider disabled on purpose in `.claude/agents.json` follows the same rule as one that's hit a limit: fall through the role's configured chain, then these tiers — never silently drop the review step.
 
 ## Triage
 

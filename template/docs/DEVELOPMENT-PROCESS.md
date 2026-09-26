@@ -8,7 +8,7 @@ How work gets done in this repo. Claude orchestrates; Codex is a second reviewer
 2. **Design.** `superpowers:brainstorming`, then a spec in `docs/superpowers/specs/`, approved by the user.
 3. **Plan.** `superpowers:writing-plans`. When the plan is written, create one GitHub issue per plan task and link them from the milestone's overview issue.
 4. **Build.** `superpowers:subagent-driven-development` on a feature branch (never `{{MAIN_BRANCH}}`), using the roles below.
-5. **Before the PR.** Classify the change's risk tier (see **Review budget** below) and review accordingly: low-risk work can skip Codex entirely, medium-risk work gets a focused local `codex review --base <the PR's base branch>` (usually `{{MAIN_BRANCH}}`; the parent branch when stacked) via the `pairing-with-codex-cli` skill's `.claude/skills/pairing-with-codex-cli/run-codex.sh`, and high-risk work gets the full review plus the usual follow-up loop. State the tier and why in the PR description. Then perform the final whole-branch Claude review and its single fix wave.
+5. **Before the PR.** Classify the change's risk tier (see **Review budget** below) and review accordingly: low-risk work can skip Codex entirely, medium-risk work gets a focused local `codex review --base <the PR's base branch>` (usually `{{MAIN_BRANCH}}`; the parent branch when stacked) via the `pairing-with-codex-cli` skill's `.claude/skills/pairing-with-codex-cli/run-codex.sh` — or the `pre_pr_review` role's other configured provider, see **Provider assignment** — and high-risk work gets the full review plus the usual follow-up loop. State the tier and why in the PR description. Then perform the final whole-branch Claude review and its single fix wave.
 6. **PR.** The body lists `Closes #N` for every issue the branch completes. Run the PR follow-up loop until it stops.
 7. **Merge** by the user. The same PR ticks off finished items in `docs/ROADMAP.md`.
 
@@ -17,13 +17,13 @@ How work gets done in this repo. Claude orchestrates; Codex is a second reviewer
 | Role | Who | Rules |
 |---|---|---|
 | Orchestrator: design, specs, plans, rulings, every commit and push | Claude (main session) | Holds the approval gates with the user; the only agent that touches git history or GitHub |
-| Implementation where the plan contains the code | Codex `exec` (default) | Brief file in the skill's format; test-first; never touches git; Claude reviews the diff and reruns the tests |
-| Same, fallback | Claude Haiku subagent | When Codex can't run the tests, or a brief fails two rounds |
+| Implementation where the plan contains the code | `implementation` role in `.claude/agents.json` (default: Codex `exec`) | Brief file in the skill's format; test-first; never touches git; Claude reviews the diff and reruns the tests |
+| Same, fallback | Claude Haiku subagent | When the resolved provider can't run the tests, or a brief fails two rounds |
 | Implementation needing judgment or spanning files | Claude Sonnet subagent | Per `superpowers:subagent-driven-development` |
-| Per-task review against the spec | Claude Sonnet | Needs the task brief, spec and global constraints |
-| Bug hunt before a PR is opened or updated | Codex `review --base <base>` (local) | Every finding probed before acting |
-| Final whole-branch review | Claude Opus | Once per branch |
-| PR gate | Codex cloud ("@codex review") | PR follow-up loop |
+| Per-task review against the spec | `task_review` role (default: Claude Sonnet) | Needs the task brief, spec and global constraints |
+| Bug hunt before a PR is opened or updated | `pre_pr_review` role (default: Codex `review --base <base>`, local) | Every finding probed before acting |
+| Final whole-branch review | `final_review` role (default: Claude Opus) | Once per branch |
+| PR gate | `pr_gate` role (default: Codex cloud, "@codex review") | PR follow-up loop |
 
 Rules everywhere:
 - Only Claude commits and pushes. Every commit ends with the attribution line from Claude Code's system prompt. Codex-written code is noted "Implemented by Codex CLI" in the commit body.
@@ -34,6 +34,14 @@ Rules everywhere:
 - The process must remain universal. A repo may use Codex heavily, lightly, or only on high-risk work; the deciding factor is the risk-adjusted value of the review, not a blanket rule.
 - The PR remains the human-in-the-loop gate. Codex can suggest and review, but the final merge is always a person-approved action.
 - If a review or PR bot hits a limit, see **Failover and quota handling** below. Never silently drop the review step.
+
+## Provider assignment
+
+Each role in the table above resolves to a provider through `.claude/agents.json`: an ordered list of provider names per role, and an `enabled` flag on each provider (see the file itself for the schema). Claude resolves a role by walking its list and taking the first entry with `enabled: true`; for a `local` (OpenAI-compatible HTTP) provider, an unreachable endpoint at call time counts the same as "not usable" and falls through to the next entry. If nothing in a role's chain is usable, apply the **Review budget** and **Failover and quota handling** rules below exactly as if the default provider had hit its limit.
+
+A repo with no `.claude/agents.json` behaves exactly as this table's defaults describe — the file is additive, not required.
+
+To pause a provider without editing every role that uses it (for example, to stop spending a ChatGPT quota you're using elsewhere), flip that provider's own `enabled` flag once in `.claude/agents.json`. `codex-cli` (the local CLI) and `codex-cloud-bot` (the PR bot) are separate flags on purpose, since you may want to keep one running while pausing the other.
 
 ## Review budget
 
@@ -54,6 +62,7 @@ A transient hiccup and an exhausted quota need different responses; conflating t
 - **Transient error or silence** (a bot glitch, a dropped response): use the PR follow-up loop's normal retry — one retry per round, 600 seconds apart. Keep polling on that cadence; it's sized for a minutes-scale hiccup, and it's covered in the PR follow-up loop below.
 - **Usage limit / quota exhausted** (the CLI or bot reports it's out of quota): quota resets run hours to days, not minutes. Do not keep polling on the 600-second cadence. Fall back immediately, for this round, to a Claude-equivalent review (or the other side's local/CLI review, if only one of CLI/bot is out). Note the fallback in the PR. Try Codex again on the next PR or session, not within this wait loop.
 - Either way: a limit pauses or reroutes the review, it never removes it, and it never authorizes a merge without the human.
+- A provider disabled on purpose in `.claude/agents.json` follows the same rule as one that's hit a limit: fall through the role's configured chain, then these tiers — never silently drop the review step.
 
 ## Triage
 
@@ -67,7 +76,7 @@ Every finding, from any reviewer:
 
 ## PR follow-up loop
 
-Runs in the Claude Code session with self-scheduled wake-ups.
+Runs in the Claude Code session with self-scheduled wake-ups. Which provider actually performs the gate is decided by the `pr_gate` role in `.claude/agents.json` (default: the Codex cloud bot, "@codex review"); the steps below describe that default path — see **Provider assignment**. If `pr_gate` resolves to no usable provider, apply the **Review budget**/**Failover and quota handling** rules instead of silently skipping the gate.
 1. After a push, post "@codex review", unless the PR was just opened (Codex reviews new PRs automatically).
 2. Wake up **600 seconds** later.
 3. Look for Codex's response to the current head commit:
@@ -104,7 +113,7 @@ When a PR's loop stops, Claude continues with the next available issue instead o
 1. **Eligible:** open issues labelled `bug`, `edge-case` or `process`, with no `blocked` or `needs-decision` label and no open `Depends on #N`. Take current-milestone issues first, then the backlog in the order bugs, edge cases, process. Never `feature` issues or milestone overviews: they are architectural and need the user in brainstorming. Leave those for the user.
 2. **Design approval moves to the PR.** Post the short design (approach, files, tests) as a comment on the issue, repeat it in the PR description, and build test-first. The user's PR review is the approval.
 3. **Branching:** start the issue's branch from the branch that holds the code it changes. While that code is only in an open PR, stack on that PR's branch (the new PR targets it); GitHub retargets it to `{{MAIN_BRANCH}}` when the base PR merges. Name branches `issue/<N>-<slug>`; the PR body says `Closes #N`.
-4. Pre-PR local Codex review, then the PR follow-up loop, then tag the user, then pick the next issue.
+4. Pre-PR review (per the `pre_pr_review` role) and the PR follow-up loop (per the `pr_gate` role — see **Provider assignment**), then tag the user, then pick the next issue.
 5. **Stop picking** when no eligible issue remains; tell the user which `feature` or `needs-decision` issues are waiting for them.
 
 ## Starting a session

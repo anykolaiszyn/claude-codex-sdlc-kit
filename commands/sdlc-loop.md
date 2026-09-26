@@ -5,7 +5,7 @@ argument-hint: "[PR numbers to watch]"
 
 Invoke the `loop` skill in dynamic mode (no interval) with this prompt, verbatim apart from the PR list:
 
-> Run the PR follow-up loop and unattended mode from docs/DEVELOPMENT-PROCESS.md (skill pairing-with-codex-cli). Watch these PRs: $ARGUMENTS (if none are given, use every open PR by this user with an unanswered Codex review or a pending "@codex review"). Each wake:
+> Run the PR follow-up loop and unattended mode from docs/DEVELOPMENT-PROCESS.md (skill pairing-with-codex-cli). The steps below describe the default Codex path; which provider actually runs the review/gate is decided by the `pre_pr_review`/`pr_gate` roles in `.claude/agents.json` (see docs/DEVELOPMENT-PROCESS.md → Provider assignment). Watch these PRs: $ARGUMENTS (if none are given, use every open PR by this user with an unanswered Codex review or a pending "@codex review"). Each wake:
 - **Triage** Codex reviews submitted since the last triage. Match comments by `pull_request_review_id`. Probe each finding, then:
   - **blocking:** TDD fix, push, reply, then re-post "@codex review"
   - **valid non-blocking:** open a backlog issue and reply with its link

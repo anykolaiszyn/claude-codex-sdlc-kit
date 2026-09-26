@@ -9,8 +9,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: ShellCheck
-        run: shellcheck scripts/*.sh tests/*.sh skills/pairing-with-codex-cli/run-codex.sh
+        run: shellcheck scripts/*.sh tests/*.sh skills/pairing-with-codex-cli/run-codex.sh skills/pairing-with-local-llms/run-local-llm.sh
       - name: Manifests are valid JSON
         run: for f in .claude-plugin/*.json; do python3 -m json.tool "$f" >/dev/null && echo "ok $f"; done
       - name: Bootstrap smoke test
         run: bash tests/bootstrap.test.sh
+      - name: Local LLM wrapper tests
+        run: bash tests/run-local-llm.test.sh

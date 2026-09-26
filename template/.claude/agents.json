@@ -1,0 +1,17 @@
+{
+  "providers": {
+    "codex-cli":       { "kind": "codex-cli", "enabled": true },
+    "codex-cloud-bot": { "kind": "codex-cloud-bot", "enabled": true },
+    "claude-sonnet":   { "kind": "claude-subagent", "model": "sonnet", "enabled": true },
+    "claude-opus":     { "kind": "claude-subagent", "model": "opus", "enabled": true },
+    "claude-haiku":    { "kind": "claude-subagent", "model": "haiku", "enabled": true },
+    "local":           { "kind": "openai-http", "base_url": "{{LOCAL_LLM_BASE_URL}}", "model": "{{LOCAL_LLM_MODEL}}", "enabled": {{LOCAL_LLM_ENABLED}} }
+  },
+  "roles": {
+    "implementation": { "providers": ["codex-cli", "claude-sonnet"] },
+    "task_review":    { "providers": ["claude-sonnet"] },
+    "pre_pr_review":  { "providers": ["codex-cli", "local", "claude-sonnet"] },
+    "final_review":   { "providers": ["claude-opus"] },
+    "pr_gate":        { "providers": ["codex-cloud-bot"] }
+  }
+}

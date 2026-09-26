@@ -1,6 +1,6 @@
 # Claude + Codex SDLC Kit
 
-**Two AI agents, one disciplined process.** Claude Code orchestrates: it designs, plans, rules on findings, and makes every commit. The OpenAI Codex CLI is an independent reviewer and a low-cost implementer when the task warrants it. GitHub issues hold the backlog, and a PR follow-up loop keeps your PRs moving while you're away. Merging is always yours. The process is intentionally flexible: low-risk work stays cheap, high-risk work gets the deeper review budget, and any usage limit falls back without silently skipping the human approval gate.
+**Two AI agents, one disciplined process.** Claude Code orchestrates: it designs, plans, rules on findings, and makes every commit. The OpenAI Codex CLI is an independent reviewer and a low-cost implementer when the task warrants it. Every role — implementation, review, or the PR gate — can be reassigned to a different model (a local one too, for review roles) or turned off if you're using that quota elsewhere. GitHub issues hold the backlog, and a PR follow-up loop keeps your PRs moving while you're away. Merging is always yours. The process is intentionally flexible: low-risk work stays cheap, high-risk work gets the deeper review budget, and any usage limit falls back without silently skipping the human approval gate.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](#install)
@@ -103,7 +103,7 @@ Before the first install, configure the repo and connect Codex. The full walkthr
 
 ```text
 /plugin marketplace add anykolaiszyn/claude-codex-sdlc-kit
-/plugin install claude-codex-sdlc@claude-codex-sdlc-kit
+/plugin install agent-sdlc@agent-sdlc-kit
 ```
 
 **Or manually, without the plugin:**
@@ -147,6 +147,7 @@ When you come back and have merged the PRs you're happy with:
 | Command | `/sdlc-loop [PRs]` | Starts the unattended PR follow-up loop and issue pickup |
 | Command | `/sdlc-resume` | After merges: fixes conflicts on the remaining PRs, unblocks issues, removes merged worktrees, continues |
 | Skill | `pairing-with-codex-cli` | How to run Codex (`run-codex.sh` keeps its long logs out of Claude's context), how to triage findings, how to delegate tasks, and the PR loop |
+| Skill | `pairing-with-local-llms` | How to run a review against a local OpenAI-compatible LLM (`run-local-llm.sh`) when a role is assigned to one |
 | Skill | `setting-up-claude-codex-sdlc` | The install procedure `/sdlc-init` follows |
 
 ## What gets installed in your repo
@@ -158,7 +159,9 @@ When you come back and have merged the PRs you're happy with:
 | `docs/DEVELOPMENT-PROCESS.md` | both | Loop, roles, triage, PR loop, issues, unattended mode, session start |
 | `docs/ARCHITECTURE.md` | both | Brief, stack, milestones, the **quality bar**, and the **review budget** (filled in during brainstorming) |
 | `docs/ROADMAP.md` | both | A readable view of the milestones (issues are the source of truth) |
+| `.claude/agents.json` | Claude | Assigns each SDLC role to a provider (Codex, a Claude model, or a local LLM) and lets you disable any of them |
 | `.claude/skills/pairing-with-codex-cli/` | Claude | A repo copy of the skill, so teammates without the plugin get it too |
+| `.claude/skills/pairing-with-local-llms/` | Claude | A repo copy of the local-LLM review adapter, for teammates without the plugin |
 | `.github/ISSUE_TEMPLATE/` | you and Claude | Backlog-finding and milestone-overview templates |
 | Labels | GitHub | Type: `bug`, `edge-case`, `feature`, `process`. Source: `from-codex`, `from-review`. Status: `blocked`, `needs-decision`. |
 
@@ -179,7 +182,7 @@ The loop runs inside your Claude Code session. Closing the session stops it.
 
 - [GitHub setup](docs/github-setup.md): the repo, branch protection, `gh` permissions, connecting Codex and notifications
 - [Manual setup guide](docs/setup-guide.md): step-by-step setup without the plugin
-- [Customising](docs/customizing.md): the quality bar, timings, roles, and stacks other than Node
+- [Customising](docs/customizing.md): the quality bar, timings, roles and providers (including local LLMs), and stacks other than Node
 - [Lessons learned](docs/lessons-learned.md): why each rule exists
 - [Troubleshooting](docs/troubleshooting.md): Codex quota, Windows shims, missing reviews
 

@@ -49,11 +49,13 @@ Change these in `docs/DEVELOPMENT-PROCESS.md` and in `skills/pairing-with-codex-
 - retries per round on the 600 s cadence, shared by transient errors and silence: **1** — a usage-limit/quota response does **not** use this retry; it fails over immediately (see **Failover and quota handling** in `docs/DEVELOPMENT-PROCESS.md`)
 - empty checks before the loop tags you: **3**
 
-## Roles
+## Roles and providers
 
-Edit the Roles table in `docs/DEVELOPMENT-PROCESS.md`:
-- **No Codex quota:** a Claude Haiku subagent implements the tasks whose code is in the plan, and a Claude Sonnet subagent does the local pre-PR review.
-- **No Codex GitHub bot:** replace the PR gate with a local `codex review --base <base>` after each push, and post its findings on the PR yourself.
+Each role in `docs/DEVELOPMENT-PROCESS.md`'s Roles table resolves through `.claude/agents.json` — edit that file, not the table, to change who does the work:
+- **No Codex quota:** disable `codex-cli` (`"providers": {"codex-cli": {"enabled": false}}`); `implementation` and `pre_pr_review` fall through to their next configured provider (Claude Sonnet by default).
+- **No Codex GitHub bot:** disable `codex-cloud-bot`; `pr_gate` then has nothing left in its chain unless you add a fallback (e.g. `["codex-cloud-bot", "claude-sonnet"]`), or leave it empty and post a local review on the PR yourself.
+- **Pointing a role at a local LLM:** add an entry to `providers` with `"kind": "openai-http"`, a `base_url` and `model` (bootstrap asks for these once, under `LOCAL_LLM_BASE_URL`/`LOCAL_LLM_MODEL`, and writes them into the `local` provider), then list that provider's name in a role's chain — most usefully `pre_pr_review` or `task_review`. See `skills/pairing-with-local-llms/SKILL.md` for the adapter's gotchas (small context windows, review-only, no delegation). **Local LLM support is currently review-only: don't assign one to `implementation`.**
+- Provider chains are fallback-ordered, first `enabled` entry wins. See `docs/DEVELOPMENT-PROCESS.md` → **Provider assignment** for the exact resolution rule.
 
 ## Labels and milestones
 

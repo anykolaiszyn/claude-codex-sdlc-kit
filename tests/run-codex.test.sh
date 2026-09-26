@@ -53,4 +53,19 @@ status=0
 bash "$kit/skills/pairing-with-codex-cli/run-codex.sh" review --base main >"$t/output" 2>&1 || status=$?
 [ "$status" = 1 ] || { echo "FAIL: expected 1 (transient) for a log with an unrelated early quota mention, got $status"; cat "$t/output"; exit 1; }
 
+# Same problem, but the unrelated quota mention falls INSIDE the tail
+# excerpt too (not just earlier in the log). Only a line actually shaped
+# like a terminal error report should trigger quota classification.
+cat >"$t/bin/codex" <<'SH'
+#!/usr/bin/env bash
+echo "reviewed source: Codex quota exhausted handling"
+for i in $(seq 1 6); do echo "progress line $i"; done
+echo "ERROR: connection reset"
+exit 1
+SH
+chmod +x "$t/bin/codex"
+status=0
+bash "$kit/skills/pairing-with-codex-cli/run-codex.sh" review --base main >"$t/output" 2>&1 || status=$?
+[ "$status" = 1 ] || { echo "FAIL: expected 1 (transient) when the quota mention shares the tail excerpt with a real ERROR line, got $status"; cat "$t/output"; exit 1; }
+
 echo 'run-codex: all checks passed'

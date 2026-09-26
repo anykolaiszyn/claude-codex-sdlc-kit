@@ -1,7 +1,7 @@
 {
-  "name": "claude-codex-sdlc",
+  "name": "agent-sdlc",
   "version": "0.1.0",
-  "description": "A two-agent SDLC for Claude Code: Claude orchestrates and commits, the Codex CLI reviews and implements, GitHub issues hold the backlog, and a PR follow-up loop runs unattended until you review.",
+  "description": "A pluggable-agent SDLC for Claude Code: Claude orchestrates and commits, and each role (implementation, review, PR gate) can be assigned to Codex, a specific Claude model, or a local LLM. GitHub issues hold the backlog, and a PR follow-up loop runs unattended until you review.",
   "author": {
     "name": "Alex Nykolaiszyn",
     "url": "https://github.com/anykolaiszyn"
@@ -9,5 +9,5 @@
   "homepage": "https://github.com/anykolaiszyn/claude-codex-sdlc-kit",
   "repository": "https://github.com/anykolaiszyn/claude-codex-sdlc-kit",
   "license": "MIT",
-  "keywords": ["codex", "code-review", "sdlc", "tdd", "github", "pull-requests", "workflow", "multi-agent"]
+  "keywords": ["codex", "code-review", "sdlc", "tdd", "github", "pull-requests", "workflow", "multi-agent", "local-llm"]
 }

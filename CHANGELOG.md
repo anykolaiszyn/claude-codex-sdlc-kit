@@ -7,6 +7,11 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Added
 - The README's Prerequisites section: minimum paid plans (Claude Pro, ChatGPT Plus) with links, a tools table including the superpowers plugin from Anthropic's official marketplace, and a summary of the GitHub and Codex configuration.
 - `docs/github-setup.md`: repo settings, branch protection, `gh` permissions, connecting Codex and turning on automatic code review, and notifications.
+- `.claude/agents.json`: assigns each SDLC role (implementation, task review, pre-PR review, final review, PR gate) to a provider — Codex, a Claude subagent model, or a local OpenAI-compatible LLM — and lets any provider be disabled without breaking the process's failover rules.
+- `pairing-with-local-llms` skill and `run-local-llm.sh`: runs a review against a local LLM endpoint (Ollama, LM Studio, vLLM, etc.) with the same log-to-disk/findings-only contract as `run-codex.sh`.
+
+### Changed
+- Plugin renamed to `agent-sdlc` (marketplace `agent-sdlc-kit`) to reflect pluggable, multi-provider support; the GitHub repo path is unchanged.
 
 ### Fixed (Codex review of #2)
 - Automatic reviews is recommended, not required: the loop recovers a missing first review.

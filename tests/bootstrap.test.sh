@@ -5,8 +5,8 @@ kit="$(cd "$(dirname "$0")/.." && pwd)"
 # "python" first: on Windows, "python3" can be the Microsoft Store stub (matches scripts/bootstrap.sh).
 py=""; for c in python python3; do if "$c" -c 1 >/dev/null 2>&1; then py="$c"; break; fi; done
 [ -n "$py" ] || { echo "FAIL: no working python found" >&2; exit 1; }
-t="$(mktemp -d)"; t2="$(mktemp -d)"; t3="$(mktemp -d)"; t4="$(mktemp -d)"; t5="$(mktemp -d)"
-trap 'rm -rf "$t" "$t2" "$t3" "$t4" "$t5"' EXIT
+t="$(mktemp -d)"; t2="$(mktemp -d)"; t3="$(mktemp -d)"; t4="$(mktemp -d)"; t5="$(mktemp -d)"; t6="$(mktemp -d)"
+trap 'rm -rf "$t" "$t2" "$t3" "$t4" "$t5" "$t6"' EXIT
 git init -q "$t"
 echo "existing" >"$t/CLAUDE.md"
 mkdir -p "$t/.claude"
@@ -98,5 +98,19 @@ REVIEW_PRIORITIES=x REVIEW_BUDGET=x M1_TITLE=x LOCAL_LLM_BASE_URL=x LOCAL_LLM_MO
 touch "$t5/chmod-log"
 grep -q "run-codex.sh" "$t5/chmod-log" && fail "chmod ran on a skipped (pre-existing) run-codex.sh"
 grep -q "run-local-llm.sh" "$t5/chmod-log" && fail "chmod ran on a skipped (pre-existing) run-local-llm.sh"
+
+# A LOCAL_LLM_MODEL containing JSON-special characters (a Windows-style
+# path, and a literal quote) must still produce valid, round-trippable JSON.
+git init -q "$t6"
+PROJECT_NAME=Demo6 PROJECT_PITCH=x MAIN_BRANCH=main TEST_CMD=x CHECK_CMD=x CODEX_TEST_CMD=x CODEX_CHECK_CMD=x \
+REVIEW_PRIORITIES=x REVIEW_BUDGET=x M1_TITLE=x LOCAL_LLM_BASE_URL="http://localhost:11434/v1" \
+LOCAL_LLM_MODEL='C:\Models\weird"name.gguf' \
+"$kit/scripts/bootstrap.sh" "$t6" >"$t6/.out6" || fail "bootstrap failed on a JSON-special LOCAL_LLM_MODEL"
+"$py" -m json.tool "$t6/.claude/agents.json" >/dev/null || fail "agents.json is not valid JSON with a backslash/quote in LOCAL_LLM_MODEL"
+"$py" - "$t6/.claude/agents.json" <<'PY' || fail "LOCAL_LLM_MODEL didn't round-trip through agents.json"
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+assert data["providers"]["local"]["model"] == 'C:\\Models\\weird"name.gguf', data["providers"]["local"]["model"]
+PY
 
 echo "bootstrap: all checks passed"

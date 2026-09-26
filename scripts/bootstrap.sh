@@ -6,6 +6,7 @@
 # Answers come from env vars (prompted for when unset):
 #   PROJECT_NAME  PROJECT_PITCH  MAIN_BRANCH  TEST_CMD  CHECK_CMD
 #   CODEX_TEST_CMD  CODEX_CHECK_CMD  REVIEW_PRIORITIES  REVIEW_BUDGET  M1_TITLE
+#   LOCAL_LLM_BASE_URL  LOCAL_LLM_MODEL
 # Existing files are never overwritten; they are reported so you can merge by hand.
 set -euo pipefail
 kit="$(cd "$(dirname "$0")/.." && pwd)"
@@ -36,6 +37,17 @@ ask REVIEW_PRIORITIES "What reviewers must prioritise"       "correctness of use
 ask REVIEW_BUDGET     "Codex review budget (risk tolerance)" "risk-based (default): skip Codex on docs/comments/tests-only changes, one targeted review on a localized fix, full review plus PR loop on auth, permissions, data, migrations, or public APIs."
 ask M1_TITLE          "First milestone title (without 'M1 — ')" "${milestone#M1 — }"
 [ -n "$M1_TITLE" ] || M1_TITLE="TODO"
+
+ask LOCAL_LLM_BASE_URL "Local LLM endpoint (OpenAI-compatible base URL; blank to skip)" ""
+ask LOCAL_LLM_MODEL    "Local LLM model name (only used if a base URL was given)"       ""
+if [ -n "$LOCAL_LLM_BASE_URL" ] && [ -z "$LOCAL_LLM_MODEL" ]; then
+  echo "LOCAL_LLM_MODEL is required when LOCAL_LLM_BASE_URL is set" >&2; exit 1
+fi
+if [ -z "$LOCAL_LLM_BASE_URL" ] && [ -n "$LOCAL_LLM_MODEL" ]; then
+  echo "LOCAL_LLM_BASE_URL is required when LOCAL_LLM_MODEL is set" >&2; exit 1
+fi
+if [ -n "$LOCAL_LLM_BASE_URL" ]; then LOCAL_LLM_ENABLED=true; else LOCAL_LLM_ENABLED=false; fi
+export LOCAL_LLM_ENABLED
 
 # "python" first: on Windows, "python3" can be the Microsoft Store stub.
 py=""; for c in python python3; do if "$c" -c 1 >/dev/null 2>&1; then py="$c"; break; fi; done

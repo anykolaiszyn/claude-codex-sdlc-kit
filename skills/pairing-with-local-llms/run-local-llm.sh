@@ -40,7 +40,15 @@ url="${url%/}"   # a trailing slash would turn "$url/chat/completions" into a do
 
 case "$diff_mode" in
   base) diff="$(git diff "$diff_arg"...HEAD 2>/dev/null)" || { echo "git diff failed for --base $diff_arg (unknown ref?)" >&2; exit 1; } ;;
-  uncommitted) diff="$(git diff HEAD 2>/dev/null)" || { echo "git diff HEAD failed (repo has no commits?)" >&2; exit 1; } ;;
+  uncommitted)
+    diff="$(git diff HEAD 2>/dev/null)" || { echo "git diff HEAD failed (repo has no commits?)" >&2; exit 1; }
+    # `git diff` alone never shows untracked files; without this, a brand-new
+    # file silently never reaches the review (matches Codex's --uncommitted).
+    while IFS= read -r f; do
+      [ -n "$f" ] || continue
+      diff="$diff"$'\n'"$(git diff --no-index -- /dev/null "$f" 2>/dev/null || true)"
+    done < <(git ls-files --others --exclude-standard)
+    ;;
   commit) diff="$(git show "$diff_arg" 2>/dev/null)" || { echo "git show failed for --commit $diff_arg (unknown ref?)" >&2; exit 1; } ;;
 esac
 [ -n "$diff" ] || { echo "no diff to review"; exit 0; }

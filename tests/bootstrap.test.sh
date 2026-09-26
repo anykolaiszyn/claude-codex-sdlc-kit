@@ -5,7 +5,8 @@ kit="$(cd "$(dirname "$0")/.." && pwd)"
 # "python" first: on Windows, "python3" can be the Microsoft Store stub (matches scripts/bootstrap.sh).
 py=""; for c in python python3; do if "$c" -c 1 >/dev/null 2>&1; then py="$c"; break; fi; done
 [ -n "$py" ] || { echo "FAIL: no working python found" >&2; exit 1; }
-t="$(mktemp -d)"; t2="$(mktemp -d)"; t3="$(mktemp -d)"; t4="$(mktemp -d)"; trap 'rm -rf "$t" "$t2" "$t3" "$t4"' EXIT
+t="$(mktemp -d)"; t2="$(mktemp -d)"; t3="$(mktemp -d)"; t4="$(mktemp -d)"; t5="$(mktemp -d)"
+trap 'rm -rf "$t" "$t2" "$t3" "$t4" "$t5"' EXIT
 git init -q "$t"
 echo "existing" >"$t/CLAUDE.md"
 mkdir -p "$t/.claude"
@@ -75,5 +76,27 @@ REVIEW_PRIORITIES=x REVIEW_BUDGET=x M1_TITLE=x \
   || fail "non-interactive bootstrap with no LOCAL_LLM_* answers crashed: $(cat "$t4/.out4")"
 [ -f "$t4/.claude/agents.json" ] || fail "missing .claude/agents.json (non-interactive run)"
 grep -q '"local":.*"enabled": false' "$t4/.claude/agents.json" || fail "non-interactive run should default local to disabled"
+
+# A pre-existing (skipped) skill script must not have its permissions
+# touched — the bootstrap's "never overwrites" contract covers mode too,
+# not just content.
+git init -q "$t5"
+mkdir -p "$t5/.claude/skills/pairing-with-codex-cli" "$t5/.claude/skills/pairing-with-local-llms"
+echo "existing codex script" >"$t5/.claude/skills/pairing-with-codex-cli/run-codex.sh"
+echo "existing local-llm script" >"$t5/.claude/skills/pairing-with-local-llms/run-local-llm.sh"
+real_chmod="$(command -v chmod)"
+mkdir -p "$t5/bin"
+cat >"$t5/bin/chmod" <<CHMODEOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >>"$t5/chmod-log"
+exec "$real_chmod" "\$@"
+CHMODEOF
+chmod +x "$t5/bin/chmod"
+PATH="$t5/bin:$PATH" PROJECT_NAME=Demo5 PROJECT_PITCH=x MAIN_BRANCH=main TEST_CMD=x CHECK_CMD=x CODEX_TEST_CMD=x CODEX_CHECK_CMD=x \
+REVIEW_PRIORITIES=x REVIEW_BUDGET=x M1_TITLE=x LOCAL_LLM_BASE_URL=x LOCAL_LLM_MODEL=x \
+"$kit/scripts/bootstrap.sh" "$t5" >"$t5/.out5"
+touch "$t5/chmod-log"
+grep -q "run-codex.sh" "$t5/chmod-log" && fail "chmod ran on a skipped (pre-existing) run-codex.sh"
+grep -q "run-local-llm.sh" "$t5/chmod-log" && fail "chmod ran on a skipped (pre-existing) run-local-llm.sh"
 
 echo "bootstrap: all checks passed"

@@ -73,12 +73,20 @@ install_tree() { # install_tree <source dir> <destination prefix inside the repo
     mkdir -p "$(dirname "$dst")"; fill "$f" "$dst"; echo "  + $rel"
   done < <(find "$src" -type f -print0)
 }
+was_skipped() { # was_skipped <rel-path>: true if install_tree left an existing file alone
+  local rel="$1" s
+  for s in "${skipped[@]}"; do [ "$s" = "$rel" ] && return 0; done
+  return 1
+}
+chmod_if_installed() { # never touch the mode of a file the bootstrap didn't just write
+  was_skipped "$1" || chmod +x "$target/$1" 2>/dev/null || true
+}
 install_tree "$kit/template" ""
 # A repo copy of the skill: teammates without the plugin, and the paths the process docs use.
 install_tree "$kit/skills/pairing-with-codex-cli" ".claude/skills/pairing-with-codex-cli/"
-chmod +x "$target/.claude/skills/pairing-with-codex-cli/run-codex.sh" 2>/dev/null || true
+chmod_if_installed ".claude/skills/pairing-with-codex-cli/run-codex.sh"
 install_tree "$kit/skills/pairing-with-local-llms" ".claude/skills/pairing-with-local-llms/"
-chmod +x "$target/.claude/skills/pairing-with-local-llms/run-local-llm.sh" 2>/dev/null || true
+chmod_if_installed ".claude/skills/pairing-with-local-llms/run-local-llm.sh"
 
 gi="$target/.gitignore"; touch "$gi"
 grep -qx '.superpowers/' "$gi" || { echo '.superpowers/' >>"$gi"; echo "  + .gitignore: .superpowers/"; }

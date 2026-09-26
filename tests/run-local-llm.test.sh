@@ -96,6 +96,21 @@ status=0
 [ "$status" = 1 ] || { echo "FAIL: expected 1 for a bad --commit ref, got $status"; cat "$t/output"; exit 1; }
 grep -qi "fatal:" "$t/output" && { echo "FAIL: raw git 'fatal:' output leaked for a bad --commit ref"; cat "$t/output"; exit 1; }
 
+# --uncommitted must include brand-new untracked files, matching Codex's own
+# --uncommitted (git diff HEAD alone ignores anything never added to the index).
+git -C "$t/repo" checkout -q -- f.txt
+printf 'brand-new-untracked-marker' >"$t/repo/new-untracked.txt"
+export MOCK_CURL_ARGS_FILE="$t/curl-args-untracked"
+( cd "$t/repo" && MOCK_CURL_STATUS=0 MOCK_CURL_HTTP=200 MOCK_CURL_BODY='{"choices":[{"message":{"content":"No findings."}}]}' \
+    bash "$script" review --uncommitted --url http://localhost:11434/v1 --model test-model ) >"$t/output" 2>&1 \
+  || { echo "FAIL: --uncommitted with only an untracked file should still succeed"; cat "$t/output"; exit 1; }
+grep -q "no diff to review" "$t/output" && { echo "FAIL: a brand-new untracked file was silently ignored"; exit 1; }
+reqfile2="$(grep -oE '@[^ ]+' "$t/curl-args-untracked" | head -1 | cut -c2-)"
+[ -f "$reqfile2" ] || { echo "FAIL: no request file found for the untracked-file case"; exit 1; }
+grep -q "brand-new-untracked-marker" "$reqfile2" || { echo "FAIL: the untracked file's content wasn't included in the review"; cat "$reqfile2"; exit 1; }
+rm -f "$t/repo/new-untracked.txt"
+unset MOCK_CURL_ARGS_FILE
+
 # Missing --url or --model is a usage error (exit 2), not silently accepted.
 status=0
 ( cd "$t/repo" && bash "$script" review --uncommitted --model test-model ) >"$t/output" 2>&1 || status=$?

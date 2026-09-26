@@ -11,9 +11,9 @@ The kit root is two directories above this skill's base directory (`<base>/../..
 
 1. **Check the machine** and report anything missing. Don't install it yourself.
    - `git --version`, `gh auth status`, `codex --version` (0.156+), `codex login status`, and `python --version`.
-   - **Pushing workflow files.** The requirement depends on how the repo pushes. Check with `git remote get-url origin`:
-     - **HTTPS with `gh`'s stored OAuth token:** `gh auth status` should list the `workflow` scope. If it's missing, the user runs `gh auth refresh -h github.com -s workflow` **in their own terminal**; inside Claude Code the device code expires unseen.
-     - **SSH remote, or a fine-grained token in `GH_TOKEN`:** the `gh` scope doesn't apply, so don't flag it. The first push that adds a workflow is the real test.
+   - **Pushing workflow files.** The requirement depends on which credential actually authenticates the push, not just the remote's transport. Check with `git remote get-url origin`:
+     - **HTTPS, and `git config --get-all credential.helper` includes `!gh auth git-credential`** (set by `gh auth setup-git`): `gh`'s token is the real push credential, so `gh auth status` should list the `workflow` scope. If it's missing, the user runs `gh auth refresh -h github.com -s workflow` **in their own terminal**; inside Claude Code the device code expires unseen.
+     - **HTTPS with any other credential helper** (Git Credential Manager, the macOS Keychain, a manually configured PAT, etc.), **SSH, or a fine-grained token in `GH_TOKEN`:** `gh auth status` doesn't necessarily reflect the credential `git push` actually uses, so don't flag it from that alone. Treat the first push that adds a workflow file as the real test: a rejection like `refusing to allow an OAuth App to create or update workflow` means that credential needs the `workflow` scope added at its own source (the credential manager, Keychain entry, or the PAT's own settings), not via `gh auth refresh`.
    - Ask the user to confirm the Codex GitHub configuration in `docs/github-setup.md` (kit root):
      - **Codex connected to the repo, with Code review on:** required.
      - **Automatic reviews:** recommended, not required. Without it, the PR loop requests the first review itself after two empty checks, so the first round is only slower.

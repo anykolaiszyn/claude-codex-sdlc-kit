@@ -5,7 +5,7 @@ kit="$(cd "$(dirname "$0")/.." && pwd)"
 # "python" first: on Windows, "python3" can be the Microsoft Store stub (matches scripts/bootstrap.sh).
 py=""; for c in python python3; do if "$c" -c 1 >/dev/null 2>&1; then py="$c"; break; fi; done
 [ -n "$py" ] || { echo "FAIL: no working python found" >&2; exit 1; }
-t="$(mktemp -d)"; t2="$(mktemp -d)"; t3="$(mktemp -d)"; trap 'rm -rf "$t" "$t2" "$t3"' EXIT
+t="$(mktemp -d)"; t2="$(mktemp -d)"; t3="$(mktemp -d)"; t4="$(mktemp -d)"; trap 'rm -rf "$t" "$t2" "$t3" "$t4"' EXIT
 git init -q "$t"
 echo "existing" >"$t/CLAUDE.md"
 mkdir -p "$t/.claude"
@@ -64,5 +64,14 @@ if printf '\n' | PROJECT_NAME=Demo3 PROJECT_PITCH=x MAIN_BRANCH=main TEST_CMD=x 
    "$kit/scripts/bootstrap.sh" "$t3" >"$t3/.out3" 2>&1; then
   fail "bootstrap should reject a base URL with no model"
 fi
+
+# Non-interactive automation (no terminal, LOCAL_LLM_* never set) must still succeed, not crash silently.
+git init -q "$t4"
+PROJECT_NAME=Demo4 PROJECT_PITCH=x MAIN_BRANCH=main TEST_CMD=x CHECK_CMD=x CODEX_TEST_CMD=x CODEX_CHECK_CMD=x \
+REVIEW_PRIORITIES=x REVIEW_BUDGET=x M1_TITLE=x \
+"$kit/scripts/bootstrap.sh" "$t4" </dev/null >"$t4/.out4" 2>&1 \
+  || fail "non-interactive bootstrap with no LOCAL_LLM_* answers crashed: $(cat "$t4/.out4")"
+[ -f "$t4/.claude/agents.json" ] || fail "missing .claude/agents.json (non-interactive run)"
+grep -q '"local":.*"enabled": false' "$t4/.claude/agents.json" || fail "non-interactive run should default local to disabled"
 
 echo "bootstrap: all checks passed"

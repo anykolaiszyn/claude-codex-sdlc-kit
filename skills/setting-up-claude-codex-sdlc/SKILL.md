@@ -19,14 +19,15 @@ The kit root is two directories above this skill's base directory (`<base>/../..
      - **Automatic reviews:** recommended, not required. Without it, the PR loop requests the first review itself after two empty checks, so the first round is only slower.
    - The superpowers plugin must be installed. If its skills are missing from your skill list, tell the user to run `/plugin install superpowers@claude-plugins-official`.
 2. **Work out the answers** from the repo before asking the user. Look at `package.json` scripts, `pyproject.toml`, `Makefile`, `go.mod` and the CI config.
-   - Answers: `PROJECT_NAME`, `PROJECT_PITCH`, `MAIN_BRANCH`, `TEST_CMD`, `CHECK_CMD`, `CODEX_TEST_CMD`, `CODEX_CHECK_CMD`, `REVIEW_PRIORITIES`, `REVIEW_BUDGET`, `M1_TITLE`.
+   - Answers: `PROJECT_NAME`, `PROJECT_PITCH`, `MAIN_BRANCH`, `TEST_CMD`, `CHECK_CMD`, `CODEX_TEST_CMD`, `CODEX_CHECK_CMD`, `REVIEW_PRIORITIES`, `REVIEW_BUDGET`, `M1_TITLE`, `LOCAL_LLM_BASE_URL`, `LOCAL_LLM_MODEL`.
    - On Windows, the Codex commands use `.cmd` shims (`npx.cmd`, `npm.cmd`).
    - Ask only for what the repo can't tell you, typically the pitch and the review priorities. `REVIEW_BUDGET` has a sensible risk-based default (see `scripts/bootstrap.sh`); only ask about it if the user has an unusually cheap or unusually risk-averse project, e.g. "review every PR regardless of size" or "skip Codex below one file changed". Ask one question at a time.
+   - `LOCAL_LLM_BASE_URL` and `LOCAL_LLM_MODEL` default to empty (no local LLM configured). Set them explicitly — even to `""` — before running the bootstrap non-interactively; don't just omit them, since bootstrap runs with no terminal attached here. Only ask the user about them if they've mentioned running a local model (Ollama, LM Studio, vLLM, etc.).
 3. **Branch first:** `git switch -c process/claude-codex-sdlc`. Never install on the default branch.
 4. **Run the bootstrap** with the answers as env vars:
    `bash "<kit>/scripts/bootstrap.sh" . --labels [--milestone "M1 — <title>"]`
    It never overwrites files. For each file it skipped, merge the kit's version into the existing one and show the user the diff.
-5. `git add --chmod=+x .claude/skills/pairing-with-codex-cli/run-codex.sh`, commit, push, and open a PR titled "Adopt the Claude + Codex SDLC".
+5. `git add --chmod=+x .claude/skills/pairing-with-codex-cli/run-codex.sh .claude/skills/pairing-with-local-llms/run-local-llm.sh`, commit, push, and open a PR titled "Adopt the Claude + Codex SDLC".
 6. **Probe Codex once:** run a 15-second `run-codex.sh exec` brief that only runs `CODEX_TEST_CMD`.
    - If Codex can't run the tests, record that in `docs/DEVELOPMENT-PROCESS.md` (Roles → fallback) and use the Claude subagent fallback for implementation.
 7. **Hand off:** tell the user that the next step is `superpowers:brainstorming`, to fill in `docs/ARCHITECTURE.md`. Its quality bar decides what counts as blocking. Then comes the spec, the milestone overview issues and the roadmap. After that, `/sdlc-loop` for unattended mode.

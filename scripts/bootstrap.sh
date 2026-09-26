@@ -75,6 +75,8 @@ install_tree "$kit/template" ""
 # A repo copy of the skill: teammates without the plugin, and the paths the process docs use.
 install_tree "$kit/skills/pairing-with-codex-cli" ".claude/skills/pairing-with-codex-cli/"
 chmod +x "$target/.claude/skills/pairing-with-codex-cli/run-codex.sh" 2>/dev/null || true
+install_tree "$kit/skills/pairing-with-local-llms" ".claude/skills/pairing-with-local-llms/"
+chmod +x "$target/.claude/skills/pairing-with-local-llms/run-local-llm.sh" 2>/dev/null || true
 
 gi="$target/.gitignore"; touch "$gi"
 grep -qx '.superpowers/' "$gi" || { echo '.superpowers/' >>"$gi"; echo "  + .gitignore: .superpowers/"; }
@@ -91,4 +93,4 @@ if [ -n "$milestone" ]; then
   gh api "repos/$repo/milestones" -f title="$milestone" >/dev/null && echo "  + milestone: $milestone"
 fi
 echo "Done. Review the files, then commit them on a branch (not $MAIN_BRANCH) and open a PR."
-echo "Stage the script as executable: git add --chmod=+x .claude/skills/pairing-with-codex-cli/run-codex.sh"
+echo "Stage the scripts as executable: git add --chmod=+x .claude/skills/pairing-with-codex-cli/run-codex.sh .claude/skills/pairing-with-local-llms/run-local-llm.sh"

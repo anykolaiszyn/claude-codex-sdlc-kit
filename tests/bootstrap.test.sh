@@ -20,7 +20,8 @@ LOCAL_LLM_BASE_URL="http://localhost:11434/v1" LOCAL_LLM_MODEL="llama3.1" \
 
 for f in AGENTS.md docs/DEVELOPMENT-PROCESS.md docs/ROADMAP.md docs/ARCHITECTURE.md \
          .github/ISSUE_TEMPLATE/backlog-finding.md .github/ISSUE_TEMPLATE/milestone-overview.md \
-         .claude/skills/pairing-with-codex-cli/SKILL.md .claude/skills/pairing-with-codex-cli/run-codex.sh; do
+         .claude/skills/pairing-with-codex-cli/SKILL.md .claude/skills/pairing-with-codex-cli/run-codex.sh \
+         .claude/skills/pairing-with-local-llms/SKILL.md .claude/skills/pairing-with-local-llms/run-local-llm.sh; do
   [ -f "$t/$f" ] || fail "missing $f"
 done
 [ "$(cat "$t/CLAUDE.md")" = existing ] || fail "CLAUDE.md was overwritten"
@@ -32,6 +33,7 @@ grep -q "M1 — First slice" "$t/docs/ROADMAP.md" || fail "milestone title not f
 grep -q "risk-based." "$t/docs/ARCHITECTURE.md" || fail "REVIEW_BUDGET not filled into ARCHITECTURE.md"
 grep -qx ".superpowers/" "$t/.gitignore" || fail ".superpowers/ not ignored"
 bash -n "$t/.claude/skills/pairing-with-codex-cli/run-codex.sh" || fail "run-codex.sh syntax"
+bash -n "$t/.claude/skills/pairing-with-local-llms/run-local-llm.sh" || fail "run-local-llm.sh syntax"
 
 # Second run is a no-op that reports everything as skipped.
 PROJECT_NAME=Demo PROJECT_PITCH=x MAIN_BRANCH=main TEST_CMD=x CHECK_CMD=x CODEX_TEST_CMD=x CODEX_CHECK_CMD=x \

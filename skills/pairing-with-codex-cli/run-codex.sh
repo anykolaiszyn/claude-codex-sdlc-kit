@@ -6,17 +6,38 @@
 #   run-codex.sh exec BRIEF.md [codex exec flags, e.g. -C <dir>]
 #
 # Output dir: $CODEX_OUT (default: ${TMPDIR:-/tmp}/codex-runs)
+# Exit codes: 0 success, 1 other failure, 2 unknown mode, 3 exhausted quota.
 set -euo pipefail
 umask 077   # logs can contain source and secrets: owner-only
 mode="${1:?usage: run-codex.sh review|exec ...}"; shift
 out="${CODEX_OUT:-${TMPDIR:-/tmp}/codex-runs}"; mkdir -p "$out"
 stamp="$(date +%Y%m%d-%H%M%S)-$$"   # PID suffix: parallel runs never share a file
 
+report_failure() {
+  local tail_excerpt last_error_line
+  echo "codex $mode failed (log: $log):"
+  tail_excerpt="$(tail -8 "$log")"
+  echo "$tail_excerpt"
+  # Only classify failed invocations; successful reviews may discuss quota code.
+  # A generic rate limit can be transient and must retain the normal retry path.
+  # Match only the LAST line shaped like a terminal error report (Codex's
+  # failure messages all start "ERROR:"), never every such line: reviewed
+  # file content or an earlier tool message can itself be (or quote) an
+  # ERROR: line mentioning quota without that being the actual failure —
+  # the real failure is always the final one Codex reports before exiting.
+  last_error_line="$(printf '%s\n' "$tail_excerpt" | grep -E '^(ERROR|Error):' | tail -1)"
+  if [ -n "$last_error_line" ] && printf '%s\n' "$last_error_line" | grep -Eiq 'usage[_ -]+limit|quota[[:space:]_-]+(exhausted|exceeded)|insufficient_quota|exceeded.*quota'; then
+    echo "Codex quota exhausted; apply the documented review fallback."
+    exit 3
+  fi
+  exit 1
+}
+
 case "$mode" in
   review)
     log="$out/review-$stamp.log"; findings="$out/review-$stamp.findings.md"
     if ! codex review "$@" >"$log" 2>&1; then
-      echo "codex review failed (log: $log):"; tail -8 "$log"; exit 1
+      report_failure
     fi
     # Findings are printed after the last "Full review comments:" marker (earlier copies repeat).
     # Match the marker only as a whole line: the log also contains file contents Codex read.
@@ -32,7 +53,7 @@ case "$mode" in
     brief="${1:?usage: run-codex.sh exec BRIEF.md [flags]}"; shift
     log="$out/exec-$stamp.log"; last="$out/exec-$stamp.last.md"
     if ! codex exec -s workspace-write -o "$last" "$@" - <"$brief" >"$log" 2>&1; then
-      echo "codex exec failed (log: $log):"; tail -8 "$log"; exit 1
+      report_failure
     fi
     echo "log: $log"; echo; cat "$last"
     ;;

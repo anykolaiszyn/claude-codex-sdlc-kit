@@ -9,9 +9,13 @@ All notable changes to this project are documented here. The format follows [Kee
 - `docs/github-setup.md`: repo settings, branch protection, `gh` permissions, connecting Codex and turning on automatic code review, and notifications.
 - `.claude/agents.json`: assigns each SDLC role (implementation, task review, pre-PR review, final review, PR gate) to a provider — Codex, a Claude subagent model, or a local OpenAI-compatible LLM — and lets any provider be disabled without breaking the process's failover rules.
 - `pairing-with-local-llms` skill and `run-local-llm.sh`: runs a review against a local LLM endpoint (Ollama, LM Studio, vLLM, etc.) with the same log-to-disk/findings-only contract as `run-codex.sh`.
+- `tests/run-codex.test.sh`: exercises `run-codex.sh`'s exit-code handling (quota exhaustion vs. transient errors) against a mocked `codex` binary.
+- `docs/DEVELOPMENT-PROCESS.md`/`pairing-with-codex-cli/SKILL.md`: "Stacked branches: drain before merging" — audits dependent PRs and stranded work before and after a stack merges, since a green merged PR doesn't prove its work reached the surviving base.
 
 ### Changed
 - Plugin renamed to `agent-sdlc` (marketplace `agent-sdlc-kit`) to reflect pluggable, multi-provider support; the GitHub repo path is unchanged.
+- `run-codex.sh` distinguishes an exhausted-quota failure (exit 3) from a generic/transient one (exit 1), so the PR follow-up loop's failover logic can tell them apart.
+- Issue/PR wording: `Closes part of #N` for partial work across several PRs, reserving `Closes #N` for the PR that actually completes an issue.
 
 ### Fixed (Codex review of #2)
 - Automatic reviews is recommended, not required: the loop recovers a missing first review.

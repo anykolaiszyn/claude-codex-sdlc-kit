@@ -16,3 +16,5 @@ jobs:
         run: bash tests/bootstrap.test.sh
       - name: Local LLM wrapper tests
         run: bash tests/run-local-llm.test.sh
+      - name: Codex wrapper tests
+        run: bash tests/run-codex.test.sh

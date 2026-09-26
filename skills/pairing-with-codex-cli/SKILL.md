@@ -35,11 +35,18 @@ S=.claude/skills/pairing-with-codex-cli   # repo copy; if absent, use this skill
 ```
 
 Gotchas:
+- Exit **3** means an exhausted quota: apply **Limit handling and failover** below without re-grepping the log. Exit **1** is another failure; generic transient rate limits retain that status. Exit **0** means success; **2** means an unknown wrapper mode.
 - `review --base/--uncommitted/--commit` **cannot take custom instructions**. Passing a prompt errors out.
 - Never paste a diff into a prompt. `review` reads git itself.
 - **Windows:** Codex runs commands through PowerShell, where `npx`/`npm` `.ps1` shims are blocked. Tell Codex to use `npx.cmd` / `npm.cmd`.
 - Check `codex <cmd> --help` before using any flag. Don't guess (`exec` has no `--ask-for-approval`).
 - Reviews take minutes. Use the Bash tool's background option (`run_in_background`), **not** a shell `&` (a detached job never reports back). Do other work meanwhile.
+
+## Worktree setup
+
+Use this skill's installed base directory when the worktree has no repo copy. If a repo copy is needed, fetch and copy only the missing skill files from the committed `origin/<default-branch>` version (usually `origin/main`), never from a sibling worktree's working tree. Do not overwrite existing files or stage unrelated skill changes. If the default branch has no committed copy, use the installed plugin copy instead.
+
+For stacked PRs, follow `docs/DEVELOPMENT-PROCESS.md` → **Stacked branches: drain before merging** before handing a parent PR to the user, and audit for stranded work after merges. Partial issue work uses `Closes part of #N`; only the PR completing the issue uses `Closes #N`.
 
 ## Triage every finding (required)
 

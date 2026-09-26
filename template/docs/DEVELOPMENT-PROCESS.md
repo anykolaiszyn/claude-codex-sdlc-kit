@@ -9,7 +9,7 @@ How work gets done in this repo. Claude orchestrates; Codex is a second reviewer
 3. **Plan.** `superpowers:writing-plans`. When the plan is written, create one GitHub issue per plan task and link them from the milestone's overview issue.
 4. **Build.** `superpowers:subagent-driven-development` on a feature branch (never `{{MAIN_BRANCH}}`), using the roles below.
 5. **Before the PR.** Classify the change's risk tier (see **Review budget** below) and review accordingly: low-risk work can skip Codex entirely, medium-risk work gets a focused local `codex review --base <the PR's base branch>` (usually `{{MAIN_BRANCH}}`; the parent branch when stacked) via the `pairing-with-codex-cli` skill's `.claude/skills/pairing-with-codex-cli/run-codex.sh` — or the `pre_pr_review` role's other configured provider, see **Provider assignment** — and high-risk work gets the full review plus the usual follow-up loop. State the tier and why in the PR description. Then perform the final whole-branch Claude review and its single fix wave.
-6. **PR.** The body lists `Closes #N` for every issue the branch completes. Run the PR follow-up loop until it stops.
+6. **PR.** The body lists `Closes #N` for every issue the branch completes. For partial work across several PRs, use `Closes part of #N`; reserve `Closes #N` for the final completing PR (including commit messages). Run the PR follow-up loop until it stops.
 7. **Merge** by the user. The same PR ticks off finished items in `docs/ROADMAP.md`.
 
 ## Roles
@@ -109,10 +109,20 @@ Runs in the Claude Code session with self-scheduled wake-ups. Which provider act
 
 ## Unattended mode
 
+### Stacked branches: drain before merging
+
+Before asking the user to merge a branch that other PRs target, list its dependents (`gh pr list --state open --base <branch>`) and **drain the stack from the leaves inward**: have the user merge ready children, or explicitly close superseded children. Apply this at every layer, not just the branch targeting `{{MAIN_BRANCH}}`. A child merged into a branch after that branch's own PR merged is stranded there; a green merged PR does not prove its work reached the default branch.
+
+If draining is impractical, retarget remaining open PRs to the surviving base, inspect their diffs and rerun required checks before presenting them for merge. After verifying the merged branch contains no stranded work, ask the user to delete it promptly. GitHub [retargets open dependent PRs when a merged head branch is deleted](https://docs.github.com/en/pull-requests/how-tos/commit-changes/managing-branches-within-your-repository); do not assume merging alone retargeted them. Confirm each actual PR base, and never keep targeting an already-merged branch. Merging and branch deletion remain user actions.
+
+After a base-of-stack merge, fetch and inspect `git log origin/{{MAIN_BRANCH}}..origin/<branch>` while the ref exists (also compare with its immediate surviving base for deeper stacks). Nonempty output needs investigation: squash/rebase merges change commit identity, so it is not proof of missing work. Compare the merged PR's recorded head with the branch's current tip and verify expected code/tests on the destination. Preserve local refs and worktrees until accounted for; if a remote ref is gone, inspect the retained local branch and PR history. Recover stranded changes through a new PR to the surviving base, resolve conflicts and test, then let the user merge it. Never delete unique work based only on a PR's merged status.
+
+### Issue pickup
+
 When a PR's loop stops, Claude continues with the next available issue instead of waiting.
 1. **Eligible:** open issues labelled `bug`, `edge-case` or `process`, with no `blocked` or `needs-decision` label and no open `Depends on #N`. Take current-milestone issues first, then the backlog in the order bugs, edge cases, process. Never `feature` issues or milestone overviews: they are architectural and need the user in brainstorming. Leave those for the user.
 2. **Design approval moves to the PR.** Post the short design (approach, files, tests) as a comment on the issue, repeat it in the PR description, and build test-first. The user's PR review is the approval.
-3. **Branching:** start the issue's branch from the branch that holds the code it changes. While that code is only in an open PR, stack on that PR's branch (the new PR targets it); GitHub retargets it to `{{MAIN_BRANCH}}` when the base PR merges. Name branches `issue/<N>-<slug>`; the PR body says `Closes #N`.
+3. **Branching:** start the issue's branch from the branch that holds the code it changes. While that code is only in an open PR, stack on that PR's branch (the new PR targets it), following **Stacked branches: drain before merging** above. Name branches `issue/<N>-<slug>`; use the complete/partial issue wording from **The loop**. For missing skill files in a worktree, use the trusted-source convention in `pairing-with-codex-cli` → **Worktree setup**.
 4. Pre-PR review (per the `pre_pr_review` role) and the PR follow-up loop (per the `pr_gate` role — see **Provider assignment**), then tag the user, then pick the next issue.
 5. **Stop picking** when no eligible issue remains; tell the user which `feature` or `needs-decision` issues are waiting for them.
 

@@ -14,18 +14,19 @@ out="${CODEX_OUT:-${TMPDIR:-/tmp}/codex-runs}"; mkdir -p "$out"
 stamp="$(date +%Y%m%d-%H%M%S)-$$"   # PID suffix: parallel runs never share a file
 
 report_failure() {
-  local tail_excerpt error_lines
+  local tail_excerpt last_error_line
   echo "codex $mode failed (log: $log):"
   tail_excerpt="$(tail -8 "$log")"
   echo "$tail_excerpt"
   # Only classify failed invocations; successful reviews may discuss quota code.
   # A generic rate limit can be transient and must retain the normal retry path.
-  # Match only lines shaped like a terminal error report (Codex's failure
-  # messages all start "ERROR:"), not the whole tail excerpt: reviewed file
-  # content can mention quota/usage limits right next to the real error
-  # without that being the actual failure reason.
-  error_lines="$(printf '%s\n' "$tail_excerpt" | grep -E '^(ERROR|Error):' || true)"
-  if [ -n "$error_lines" ] && printf '%s\n' "$error_lines" | grep -Eiq 'usage[_ -]+limit|quota[[:space:]_-]+(exhausted|exceeded)|insufficient_quota|exceeded.*quota'; then
+  # Match only the LAST line shaped like a terminal error report (Codex's
+  # failure messages all start "ERROR:"), never every such line: reviewed
+  # file content or an earlier tool message can itself be (or quote) an
+  # ERROR: line mentioning quota without that being the actual failure —
+  # the real failure is always the final one Codex reports before exiting.
+  last_error_line="$(printf '%s\n' "$tail_excerpt" | grep -E '^(ERROR|Error):' | tail -1)"
+  if [ -n "$last_error_line" ] && printf '%s\n' "$last_error_line" | grep -Eiq 'usage[_ -]+limit|quota[[:space:]_-]+(exhausted|exceeded)|insufficient_quota|exceeded.*quota'; then
     echo "Codex quota exhausted; apply the documented review fallback."
     exit 3
   fi

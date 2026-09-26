@@ -68,4 +68,19 @@ status=0
 bash "$kit/skills/pairing-with-codex-cli/run-codex.sh" review --base main >"$t/output" 2>&1 || status=$?
 [ "$status" = 1 ] || { echo "FAIL: expected 1 (transient) when the quota mention shares the tail excerpt with a real ERROR line, got $status"; cat "$t/output"; exit 1; }
 
+# Two ERROR:-shaped lines in the tail excerpt: an incidental one (reviewed
+# tool output quoting a quota error) and the real terminal one. Only the
+# last/actual error line should decide the classification.
+cat >"$t/bin/codex" <<'SH'
+#!/usr/bin/env bash
+echo "ERROR: quota exhausted"
+for i in $(seq 1 6); do echo "progress line $i"; done
+echo "ERROR: connection reset"
+exit 1
+SH
+chmod +x "$t/bin/codex"
+status=0
+bash "$kit/skills/pairing-with-codex-cli/run-codex.sh" review --base main >"$t/output" 2>&1 || status=$?
+[ "$status" = 1 ] || { echo "FAIL: expected 1 (transient) when an earlier, unrelated ERROR: line also appears, got $status"; cat "$t/output"; exit 1; }
+
 echo 'run-codex: all checks passed'

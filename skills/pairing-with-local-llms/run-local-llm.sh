@@ -48,18 +48,30 @@ esac
 out="${LOCAL_LLM_OUT:-${TMPDIR:-/tmp}/local-llm-runs}"; mkdir -p "$out"
 stamp="$(date +%Y%m%d-%H%M%S)-$$"   # PID suffix: parallel runs never share a file
 log="$out/review-$stamp.log"; findings="$out/review-$stamp.findings.md"
+request="$out/review-$stamp.request.json"
 
-prompt=$'You are reviewing a code change. For each real issue, state whether it is BLOCKING (wrong output/behaviour, a crash, or a spec violation) or an EDGE CASE (valid but out of scope), with a concrete failing input. If there are no issues, say "No findings." Do not repeat the diff back.\n\nDiff:\n'"$diff"
+prompt_file="$out/review-$stamp.prompt.txt"
+{
+  printf 'You are reviewing a code change. For each real issue, state whether it is BLOCKING (wrong output/behaviour, a crash, or a spec violation) or an EDGE CASE (valid but out of scope), with a concrete failing input. If there are no issues, say "No findings." Do not repeat the diff back.\n\nDiff:\n'
+  printf '%s' "$diff"
+} >"$prompt_file"
 
-payload="$(model="$model" prompt="$prompt" "$py" - <<'PY'
-import json, os
-print(json.dumps({"model": os.environ["model"], "messages": [{"role": "user", "content": os.environ["prompt"]}]}))
+# The diff can be large: everything above a trivial size lives in a file,
+# referenced by path (a short argument), never inlined into argv or an env
+# var. A big inline argument can silently exceed the OS command-line limit
+# (curl.exe on Windows fails around 32KB), which looks exactly like a
+# network failure.
+"$py" - "$model" "$prompt_file" "$request" <<'PY'
+import json, sys
+model, prompt_path, req_path = sys.argv[1], sys.argv[2], sys.argv[3]
+prompt = open(prompt_path, encoding="utf-8").read()
+payload = {"model": model, "messages": [{"role": "user", "content": prompt}]}
+open(req_path, "w", encoding="utf-8").write(json.dumps(payload))
 PY
-)"
 
 status=0
 http_code="$(curl -sS --max-time "$timeout" -o "$log" -w '%{http_code}' \
-  -H 'Content-Type: application/json' -d "$payload" "$url/chat/completions")" || status=$?
+  -H 'Content-Type: application/json' --data-binary "@$request" "$url/chat/completions")" || status=$?
 
 if [ "$status" != 0 ]; then
   echo "local LLM unreachable at $url (log: $log)"; exit 3
@@ -71,8 +83,13 @@ fi
 if ! "$py" - "$log" "$findings" <<'PY'
 import json, sys
 log_path, out_path = sys.argv[1], sys.argv[2]
-data = json.load(open(log_path, encoding="utf-8"))
-content = data["choices"][0]["message"]["content"]
+try:
+    data = json.load(open(log_path, encoding="utf-8"))
+    content = data["choices"][0]["message"]["content"]
+    if not isinstance(content, str):
+        raise TypeError(f"content is {type(content).__name__}, not str")
+except Exception:
+    sys.exit(1)
 open(out_path, "w", encoding="utf-8").write(content)
 PY
 then

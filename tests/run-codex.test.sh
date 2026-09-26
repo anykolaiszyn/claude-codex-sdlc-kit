@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Exercise wrapper exit codes without spending Codex quota.
+set -euo pipefail
+kit="$(cd "$(dirname "$0")/.." && pwd)"
+t="$(mktemp -d)"; trap 'rm -rf "$t"' EXIT
+mkdir -p "$t/bin"
+cat >"$t/bin/codex" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$MOCK_MESSAGE"
+if [ "$1" = exec ] && [ "$MOCK_STATUS" = 0 ]; then
+  shift
+  while [ "$#" -gt 0 ]; do
+    if [ "$1" = -o ]; then shift; printf 'done\n' >"$1"; break; fi
+    shift
+  done
+fi
+exit "$MOCK_STATUS"
+SH
+chmod +x "$t/bin/codex"
+export PATH="$t/bin:$PATH" CODEX_OUT="$t/logs"
+printf 'test brief\n' >"$t/brief.md"
+check() {
+  local mode="$1" expected="$2" status=0
+  export MOCK_STATUS="$3" MOCK_MESSAGE="$4"
+  local args=(review --base main)
+  if [ "$mode" = exec ]; then args=(exec "$t/brief.md"); fi
+  bash "$kit/skills/pairing-with-codex-cli/run-codex.sh" "${args[@]}" >"$t/output" 2>&1 || status=$?
+  [ "$status" = "$expected" ] || { echo "FAIL: $mode expected $expected, got $status ($MOCK_MESSAGE)"; exit 1; }
+}
+for mode in review exec; do
+  check "$mode" 3 1 "ERROR: You've hit your usage limit."
+  check "$mode" 3 1 'ERROR: quota exhausted'
+  check "$mode" 3 1 'ERROR: insufficient_quota'
+  check "$mode" 1 1 'ERROR: connection reset'
+  check "$mode" 1 1 'ERROR: rate limit reached; retry shortly'
+  check "$mode" 0 0 'Review discusses quota exhausted handling; no findings.'
+done
+
+# A quota-shaped phrase appearing early in REVIEWED FILE CONTENT (not the
+# actual terminal error) must not misclassify a transient failure as
+# quota-exhausted. Realistic logs run to thousands of lines; the quota
+# mention here is far outside any reasonable "final error" window.
+cat >"$t/bin/codex" <<'SH'
+#!/usr/bin/env bash
+for i in $(seq 1 50); do echo "reviewing file line $i"; done
+echo "This file discusses: Codex quota exhausted handling in run-codex.sh"
+for i in $(seq 1 50); do echo "reviewing file line $i"; done
+echo "ERROR: connection reset"
+exit 1
+SH
+chmod +x "$t/bin/codex"
+status=0
+bash "$kit/skills/pairing-with-codex-cli/run-codex.sh" review --base main >"$t/output" 2>&1 || status=$?
+[ "$status" = 1 ] || { echo "FAIL: expected 1 (transient) for a log with an unrelated early quota mention, got $status"; cat "$t/output"; exit 1; }
+
+# Same problem, but the unrelated quota mention falls INSIDE the tail
+# excerpt too (not just earlier in the log). Only a line actually shaped
+# like a terminal error report should trigger quota classification.
+cat >"$t/bin/codex" <<'SH'
+#!/usr/bin/env bash
+echo "reviewed source: Codex quota exhausted handling"
+for i in $(seq 1 6); do echo "progress line $i"; done
+echo "ERROR: connection reset"
+exit 1
+SH
+chmod +x "$t/bin/codex"
+status=0
+bash "$kit/skills/pairing-with-codex-cli/run-codex.sh" review --base main >"$t/output" 2>&1 || status=$?
+[ "$status" = 1 ] || { echo "FAIL: expected 1 (transient) when the quota mention shares the tail excerpt with a real ERROR line, got $status"; cat "$t/output"; exit 1; }
+
+echo 'run-codex: all checks passed'

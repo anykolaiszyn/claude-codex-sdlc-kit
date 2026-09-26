@@ -56,10 +56,18 @@ py=""; for c in python python3; do if "$c" -c 1 >/dev/null 2>&1; then py="$c"; b
 [ -n "$py" ] || { echo "Python 3 is required" >&2; exit 1; }
 fill() { # substitute {{VARS}} from the environment
   "$py" - "$1" "$2" <<'PY'
-import os, re, sys
+import json, os, re, sys
 src, dst = sys.argv[1], sys.argv[2]
 text = open(src, encoding="utf-8").read()
-text = re.sub(r"\{\{(\w+)\}\}", lambda m: os.environ.get(m.group(1), m.group(0)), text)
+if dst.endswith(".json"):
+    # Escape the value's own backslashes/quotes; the template's surrounding
+    # quotes (or lack of them, for a bare literal like a boolean) are untouched.
+    def sub(m):
+        return json.dumps(os.environ.get(m.group(1), m.group(0)))[1:-1]
+else:
+    def sub(m):
+        return os.environ.get(m.group(1), m.group(0))
+text = re.sub(r"\{\{(\w+)\}\}", sub, text)
 open(dst, "w", encoding="utf-8", newline="\n").write(text)
 PY
 }

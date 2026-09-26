@@ -35,13 +35,13 @@ while [ $# -gt 0 ]; do
   esac
 done
 [ -n "$diff_mode" ] || { echo "one of --base/--uncommitted/--commit is required" >&2; exit 2; }
-[ -n "$url" ] && [ -n "$model" ] || { echo "--url and --model are required" >&2; exit 2; }
+if [ -z "$url" ] || [ -z "$model" ]; then echo "--url and --model are required" >&2; exit 2; fi
 url="${url%/}"   # a trailing slash would turn "$url/chat/completions" into a double slash
 
 case "$diff_mode" in
-  base) diff="$(git diff "$diff_arg"...HEAD)" ;;
-  uncommitted) diff="$(git diff HEAD)" ;;
-  commit) diff="$(git show "$diff_arg")" ;;
+  base) diff="$(git diff "$diff_arg"...HEAD 2>/dev/null)" || { echo "git diff failed for --base $diff_arg (unknown ref?)" >&2; exit 1; } ;;
+  uncommitted) diff="$(git diff HEAD 2>/dev/null)" || { echo "git diff HEAD failed (repo has no commits?)" >&2; exit 1; } ;;
+  commit) diff="$(git show "$diff_arg" 2>/dev/null)" || { echo "git show failed for --commit $diff_arg (unknown ref?)" >&2; exit 1; } ;;
 esac
 [ -n "$diff" ] || { echo "no diff to review"; exit 0; }
 

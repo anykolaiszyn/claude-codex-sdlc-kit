@@ -84,4 +84,24 @@ unset MOCK_CURL_ARGSLEN_FILE MOCK_CURL_ARGS_FILE
   >"$t/output" 2>&1 && { echo "FAIL: expected non-zero outside a git repo"; cat "$t/output"; exit 1; }
 grep -qi "git" "$t/output" || { echo "FAIL: error message should mention git"; cat "$t/output"; exit 1; }
 
+# A bad ref must fail cleanly (exit 1), not with git's raw 128/"fatal:" output.
+status=0
+( cd "$t/repo" && bash "$script" review --base does-not-exist --url http://localhost:11434/v1 --model test-model ) \
+  >"$t/output" 2>&1 || status=$?
+[ "$status" = 1 ] || { echo "FAIL: expected 1 for a bad --base ref, got $status"; cat "$t/output"; exit 1; }
+grep -qi "fatal:" "$t/output" && { echo "FAIL: raw git 'fatal:' output leaked for a bad --base ref"; cat "$t/output"; exit 1; }
+status=0
+( cd "$t/repo" && bash "$script" review --commit deadbeef --url http://localhost:11434/v1 --model test-model ) \
+  >"$t/output" 2>&1 || status=$?
+[ "$status" = 1 ] || { echo "FAIL: expected 1 for a bad --commit ref, got $status"; cat "$t/output"; exit 1; }
+grep -qi "fatal:" "$t/output" && { echo "FAIL: raw git 'fatal:' output leaked for a bad --commit ref"; cat "$t/output"; exit 1; }
+
+# Missing --url or --model is a usage error (exit 2), not silently accepted.
+status=0
+( cd "$t/repo" && bash "$script" review --uncommitted --model test-model ) >"$t/output" 2>&1 || status=$?
+[ "$status" = 2 ] || { echo "FAIL: expected 2 for missing --url, got $status"; cat "$t/output"; exit 1; }
+status=0
+( cd "$t/repo" && bash "$script" review --uncommitted --url http://localhost:11434/v1 ) >"$t/output" 2>&1 || status=$?
+[ "$status" = 2 ] || { echo "FAIL: expected 2 for missing --model, got $status"; cat "$t/output"; exit 1; }
+
 echo "run-local-llm: all checks passed"

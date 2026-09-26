@@ -35,4 +35,22 @@ for mode in review exec; do
   check "$mode" 1 1 'ERROR: rate limit reached; retry shortly'
   check "$mode" 0 0 'Review discusses quota exhausted handling; no findings.'
 done
+
+# A quota-shaped phrase appearing early in REVIEWED FILE CONTENT (not the
+# actual terminal error) must not misclassify a transient failure as
+# quota-exhausted. Realistic logs run to thousands of lines; the quota
+# mention here is far outside any reasonable "final error" window.
+cat >"$t/bin/codex" <<'SH'
+#!/usr/bin/env bash
+for i in $(seq 1 50); do echo "reviewing file line $i"; done
+echo "This file discusses: Codex quota exhausted handling in run-codex.sh"
+for i in $(seq 1 50); do echo "reviewing file line $i"; done
+echo "ERROR: connection reset"
+exit 1
+SH
+chmod +x "$t/bin/codex"
+status=0
+bash "$kit/skills/pairing-with-codex-cli/run-codex.sh" review --base main >"$t/output" 2>&1 || status=$?
+[ "$status" = 1 ] || { echo "FAIL: expected 1 (transient) for a log with an unrelated early quota mention, got $status"; cat "$t/output"; exit 1; }
+
 echo 'run-codex: all checks passed'

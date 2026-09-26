@@ -50,7 +50,7 @@ git config --global user.email "you@example.com"
 
 ## 4. Connect Codex to GitHub (the PR reviewer)
 
-This needs a paid ChatGPT plan (Plus or higher; see [Prerequisites](../README.md#prerequisites)).
+This needs a paid ChatGPT plan (Plus or higher; see [Prerequisites](setup-guide.md#prerequisites)).
 
 1. Go to **https://chatgpt.com/codex** and sign in with the same ChatGPT account the Codex CLI uses.
 2. **Connect GitHub** when prompted. This installs the **ChatGPT Codex Connector** GitHub app.

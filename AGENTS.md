@@ -4,7 +4,7 @@ This repo is the Claude Code plugin and the bootstrap templates that install a d
 
 ## Start here
 
-- Read [README.md](README.md) for the high-level workflow, commands, and install path.
+- Read [docs/setup-guide.md](docs/setup-guide.md) for the high-level workflow, commands, and install path.
 - Read [template/docs/DEVELOPMENT-PROCESS.md](template/docs/DEVELOPMENT-PROCESS.md) for the source-of-truth workflow and review loop.
 - Read [skills/pairing-with-codex-cli/SKILL.md](skills/pairing-with-codex-cli/SKILL.md) for the Codex review and triage workflow.
 - Read [tests/bootstrap.test.sh](tests/bootstrap.test.sh) before changing bootstrap behavior; it defines the expected install contract.

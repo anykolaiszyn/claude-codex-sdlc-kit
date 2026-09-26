@@ -33,6 +33,8 @@ grep -q "M1 — First slice" "$t/docs/ROADMAP.md" || fail "milestone title not f
 grep -q "risk-based." "$t/docs/ARCHITECTURE.md" || fail "REVIEW_BUDGET not filled into ARCHITECTURE.md"
 grep -q "Provider assignment" "$t/docs/DEVELOPMENT-PROCESS.md" || fail "Provider assignment section missing from DEVELOPMENT-PROCESS.md"
 grep -q ".claude/agents.json" "$t/docs/DEVELOPMENT-PROCESS.md" || fail "DEVELOPMENT-PROCESS.md doesn't reference agents.json"
+grep -q "Which provider actually performs the gate" "$t/docs/DEVELOPMENT-PROCESS.md" || fail "PR follow-up loop doesn't cross-reference the pr_gate role"
+grep -q "per the \`pre_pr_review\` role" "$t/docs/DEVELOPMENT-PROCESS.md" || fail "Unattended mode doesn't cross-reference the pre_pr_review role"
 grep -q ".claude/agents.json" "$kit/template/CLAUDE.md" || fail "template/CLAUDE.md doesn't reference agents.json"
 grep -q ".claude/agents.json" "$t/AGENTS.md" || fail "installed AGENTS.md doesn't reference agents.json"
 grep -qx ".superpowers/" "$t/.gitignore" || fail ".superpowers/ not ignored"

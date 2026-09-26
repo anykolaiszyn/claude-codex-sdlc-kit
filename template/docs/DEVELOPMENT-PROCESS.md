@@ -8,7 +8,7 @@ How work gets done in this repo. Claude orchestrates; Codex is a second reviewer
 2. **Design.** `superpowers:brainstorming`, then a spec in `docs/superpowers/specs/`, approved by the user.
 3. **Plan.** `superpowers:writing-plans`. When the plan is written, create one GitHub issue per plan task and link them from the milestone's overview issue.
 4. **Build.** `superpowers:subagent-driven-development` on a feature branch (never `{{MAIN_BRANCH}}`), using the roles below.
-5. **Before the PR.** Classify the change's risk tier (see **Review budget** below) and review accordingly: low-risk work can skip Codex entirely, medium-risk work gets a focused local `codex review --base <the PR's base branch>` (usually `{{MAIN_BRANCH}}`; the parent branch when stacked) via the `pairing-with-codex-cli` skill's `.claude/skills/pairing-with-codex-cli/run-codex.sh`, and high-risk work gets the full review plus the usual follow-up loop. State the tier and why in the PR description. Then perform the final whole-branch Claude review and its single fix wave.
+5. **Before the PR.** Classify the change's risk tier (see **Review budget** below) and review accordingly: low-risk work can skip Codex entirely, medium-risk work gets a focused local `codex review --base <the PR's base branch>` (usually `{{MAIN_BRANCH}}`; the parent branch when stacked) via the `pairing-with-codex-cli` skill's `.claude/skills/pairing-with-codex-cli/run-codex.sh` — or the `pre_pr_review` role's other configured provider, see **Provider assignment** — and high-risk work gets the full review plus the usual follow-up loop. State the tier and why in the PR description. Then perform the final whole-branch Claude review and its single fix wave.
 6. **PR.** The body lists `Closes #N` for every issue the branch completes. Run the PR follow-up loop until it stops.
 7. **Merge** by the user. The same PR ticks off finished items in `docs/ROADMAP.md`.
 
@@ -76,7 +76,7 @@ Every finding, from any reviewer:
 
 ## PR follow-up loop
 
-Runs in the Claude Code session with self-scheduled wake-ups.
+Runs in the Claude Code session with self-scheduled wake-ups. Which provider actually performs the gate is decided by the `pr_gate` role in `.claude/agents.json` (default: the Codex cloud bot, "@codex review"); the steps below describe that default path — see **Provider assignment**. If `pr_gate` resolves to no usable provider, apply the **Review budget**/**Failover and quota handling** rules instead of silently skipping the gate.
 1. After a push, post "@codex review", unless the PR was just opened (Codex reviews new PRs automatically).
 2. Wake up **600 seconds** later.
 3. Look for Codex's response to the current head commit:
@@ -113,7 +113,7 @@ When a PR's loop stops, Claude continues with the next available issue instead o
 1. **Eligible:** open issues labelled `bug`, `edge-case` or `process`, with no `blocked` or `needs-decision` label and no open `Depends on #N`. Take current-milestone issues first, then the backlog in the order bugs, edge cases, process. Never `feature` issues or milestone overviews: they are architectural and need the user in brainstorming. Leave those for the user.
 2. **Design approval moves to the PR.** Post the short design (approach, files, tests) as a comment on the issue, repeat it in the PR description, and build test-first. The user's PR review is the approval.
 3. **Branching:** start the issue's branch from the branch that holds the code it changes. While that code is only in an open PR, stack on that PR's branch (the new PR targets it); GitHub retargets it to `{{MAIN_BRANCH}}` when the base PR merges. Name branches `issue/<N>-<slug>`; the PR body says `Closes #N`.
-4. Pre-PR local Codex review, then the PR follow-up loop, then tag the user, then pick the next issue.
+4. Pre-PR review (per the `pre_pr_review` role) and the PR follow-up loop (per the `pr_gate` role — see **Provider assignment**), then tag the user, then pick the next issue.
 5. **Stop picking** when no eligible issue remains; tell the user which `feature` or `needs-decision` issues are waiting for them.
 
 ## Starting a session

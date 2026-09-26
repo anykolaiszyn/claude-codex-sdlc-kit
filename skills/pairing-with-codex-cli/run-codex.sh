@@ -26,7 +26,7 @@ report_failure() {
   # ERROR: line mentioning quota without that being the actual failure —
   # the real failure is always the final one Codex reports before exiting.
   last_error_line="$(printf '%s\n' "$tail_excerpt" | grep -E '^(ERROR|Error):' | tail -1)"
-  if [ -n "$last_error_line" ] && printf '%s\n' "$last_error_line" | grep -Eiq 'usage[_ -]+limit|quota[[:space:]_-]+(exhausted|exceeded)|insufficient_quota|exceeded.*quota'; then
+  if [ -n "$last_error_line" ] && printf '%s\n' "$last_error_line" | grep -Eiq 'usage[_ -]+limit|quota[[:space:]_-]+(exhausted|exceeded)|insufficient_quota|exceeded.*quota|out[[:space:]_-]+of[[:space:]_-]+credits|spend[[:space:]_-]*cap'; then
     echo "Codex quota exhausted; apply the documented review fallback."
     exit 3
   fi

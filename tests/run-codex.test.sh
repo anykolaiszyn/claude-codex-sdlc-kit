@@ -31,6 +31,8 @@ for mode in review exec; do
   check "$mode" 3 1 "ERROR: You've hit your usage limit."
   check "$mode" 3 1 'ERROR: quota exhausted'
   check "$mode" 3 1 'ERROR: insufficient_quota'
+  check "$mode" 3 1 'ERROR: Your workspace is out of credits. Add credits to continue.'
+  check "$mode" 3 1 'ERROR: workspace spend cap reached'
   check "$mode" 1 1 'ERROR: connection reset'
   check "$mode" 1 1 'ERROR: rate limit reached; retry shortly'
   check "$mode" 0 0 'Review discusses quota exhausted handling; no findings.'

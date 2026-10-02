@@ -41,6 +41,8 @@ Running two AI systems isn't free, so the kit is careful about it: cheap, low-st
 
 This page is the pitch. The how-to lives in **[docs/setup-guide.md](docs/setup-guide.md)** — prerequisites, install steps, and everything else you'd need if you're setting this up in a real project.
 
+Optional and read-only: an [observer](docs/observer.md) that reports what the process would act on, and a [proposed next-stage review contract](docs/review-contract.md). Neither changes the default workflow.
+
 ## License
 
 [MIT](LICENSE)

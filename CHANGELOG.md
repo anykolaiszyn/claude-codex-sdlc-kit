@@ -5,6 +5,7 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- `scripts/sdlc_observer.py` and `docs/observer.md`: an optional, stdlib-only, read-only observer that reports structured "would act" changes for a repository (no execution, no GitHub writes, empty output when nothing changed), with `tests/test_sdlc_observer.py` run in CI. `docs/review-contract.md` is the proposed, unshipped next-stage review contract.
 - The README's Prerequisites section: minimum paid plans (Claude Pro, ChatGPT Plus) with links, a tools table including the superpowers plugin from Anthropic's official marketplace, and a summary of the GitHub and Codex configuration.
 - `docs/github-setup.md`: repo settings, branch protection, `gh` permissions, connecting Codex and turning on automatic code review, and notifications.
 - `.claude/agents.json`: assigns each SDLC role (implementation, task review, pre-PR review, final review, PR gate) to a provider — Codex, a Claude subagent model, or a local OpenAI-compatible LLM — and lets any provider be disabled without breaking the process's failover rules.

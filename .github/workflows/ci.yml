@@ -12,6 +12,10 @@ jobs:
         run: shellcheck scripts/*.sh tests/*.sh skills/pairing-with-codex-cli/run-codex.sh skills/pairing-with-local-llms/run-local-llm.sh
       - name: Manifests are valid JSON
         run: for f in .claude-plugin/*.json; do python3 -m json.tool "$f" >/dev/null && echo "ok $f"; done
+      - name: Observer unit tests
+        run: |
+          python3 -m py_compile scripts/sdlc_observer.py
+          python3 -m unittest discover -s tests -p 'test_sdlc_observer.py'
       - name: Bootstrap smoke test
         run: bash tests/bootstrap.test.sh
       - name: Local LLM wrapper tests

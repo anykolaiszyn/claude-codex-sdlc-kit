@@ -1,4 +1,6 @@
 .superpowers/
 node_modules/
+.sdlc-observer/
+__pycache__/
 *.log
 .DS_Store

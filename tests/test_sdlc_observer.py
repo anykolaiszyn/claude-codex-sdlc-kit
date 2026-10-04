@@ -610,6 +610,108 @@ def reaction(rid, content, user=BOT):
     return {"id": rid, "user": user, "content": content}
 
 
+FALLBACK = "Summary: no blocking findings.\nReview fallback: claude-sonnet\n"
+
+
+class FallbackReviewTests(ObserveCase):
+    def test_declaration_seen_on_unchanged_head_is_bound_and_asks_for_confirmation(self):
+        self.w.add_pr(1)
+        self.run_ok()
+        self.w.prs[1]["comments"].append(comment(60, OWNER, FALLBACK, T2))
+        pr = self.obs_for(self.run_ok(), "pr", 1)
+        self.assertEqual(pr["signals"]["review_fallback"], "bound_to_head")
+        self.assertEqual(pr["signals"]["review_fallback_provider"], "claude-sonnet")
+        self.assertIn("fallback_review_changed", pr["reasons"])
+        self.assertIn("confirm_fallback_review", pr["would_act"])
+
+    def test_preexisting_declaration_is_unbound_and_does_not_ask(self):
+        self.w.add_pr(1, comments=[comment(60, OWNER, FALLBACK, T2)])
+        pr = self.obs_for(self.run_ok(), "pr", 1)
+        self.assertEqual(pr["signals"]["review_fallback"], "unbound")
+        self.assertNotIn("confirm_fallback_review", pr["would_act"])
+
+    def test_a_push_unbinds_it_for_good(self):
+        self.w.add_pr(1)
+        self.run_ok()
+        self.w.prs[1]["comments"].append(comment(60, OWNER, FALLBACK, T2))
+        self.run_ok()
+        self.w.prs[1]["head"] = SHA2
+        pr = self.obs_for(self.run_ok(), "pr", 1)
+        self.assertEqual(pr["signals"]["review_fallback"], "unbound")
+        self.assertNotIn("confirm_fallback_review", pr["would_act"])
+
+    def test_only_the_requester_can_declare_one(self):
+        self.w.add_pr(1)
+        self.run_ok()
+        self.w.prs[1]["comments"].append(comment(60, HUMAN, FALLBACK, T2))
+        self.assertIsNone(self.run_ok())
+
+    def test_a_current_formal_receipt_needs_no_confirmation(self):
+        self.w.add_pr(1, reviews=[review(100, SHA1)])
+        self.run_ok()
+        self.w.prs[1]["comments"].append(comment(60, OWNER, FALLBACK, T2))
+        pr = self.obs_for(self.run_ok(), "pr", 1)
+        self.assertEqual(pr["signals"]["formal_receipt"], "current")
+        self.assertNotIn("confirm_fallback_review", pr["would_act"])
+
+    def test_provider_text_is_sanitized(self):
+        self.w.add_pr(1)
+        self.run_ok()
+        self.w.prs[1]["comments"].append(comment(60, OWNER, "Review fallback: " + "x" * 50, T2))
+        pr = self.obs_for(self.run_ok(), "pr", 1)
+        self.assertEqual(pr["signals"]["review_fallback_provider"], "x" * 40)
+
+    def test_an_overlong_declaration_line_is_not_a_declaration(self):
+        self.w.add_pr(1)
+        self.run_ok()
+        self.w.prs[1]["comments"].append(comment(60, OWNER, "Review fallback: " + "x" * 80, T2))
+        self.assertIsNone(self.run_ok())
+
+    def test_crlf_bodies_from_the_web_ui_are_recognised(self):
+        self.w.add_pr(1)
+        self.run_ok()
+        self.w.prs[1]["comments"].append(comment(60, OWNER, "Summary\r\nReview fallback: claude-sonnet\r\nmore\r\n", T2))
+        pr = self.obs_for(self.run_ok(), "pr", 1)
+        self.assertEqual(pr["signals"]["review_fallback_provider"], "claude-sonnet")
+
+    def test_only_the_newest_three_declarations_are_kept_and_the_newest_wins(self):
+        self.w.add_pr(1)
+        self.run_ok()
+        for i in range(5):
+            self.w.prs[1]["comments"].append(comment(60 + i, OWNER, "Review fallback: p%d" % i, T2))
+        pr = self.obs_for(self.run_ok(), "pr", 1)
+        self.assertEqual(pr["signals"]["review_fallback_provider"], "p4")
+        self.assertLessEqual(len(json.loads(self.state_text())["prs"]["1"]["fallbacks"]), 3)
+
+    def test_an_edited_declaration_rebinds_to_the_head_it_was_seen_on(self):
+        self.w.add_pr(1)
+        self.run_ok()
+        self.w.prs[1]["comments"].append(comment(60, OWNER, "Review fallback: first", T2))
+        self.run_ok()
+        self.w.prs[1]["comments"][0]["body"] = "Review fallback: second"
+        pr = self.obs_for(self.run_ok(), "pr", 1)
+        self.assertEqual(pr["signals"]["review_fallback_provider"], "second")
+        self.assertEqual(pr["signals"]["review_fallback"], "bound_to_head")
+
+    def test_a_state_file_from_before_the_signal_loads_and_stays_silent(self):
+        self.w.add_pr(1)
+        self.run_ok()
+        path = os.path.join(self.dir, obs.STATE_FILE)
+        doc = json.loads(self.state_text())
+        for pr in doc["prs"].values():
+            pr.pop("fallbacks", None)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(doc, f)
+        self.assertIsNone(self.run_ok())
+
+    def test_unchanged_poll_is_silent(self):
+        self.w.add_pr(1)
+        self.run_ok()
+        self.w.prs[1]["comments"].append(comment(60, OWNER, FALLBACK, T2))
+        self.run_ok()
+        self.assertIsNone(self.run_ok())
+
+
 class EvidenceTests(ObserveCase):
     def evidence(self, doc, n=1):
         return self.obs_for(doc, "pr", n)["evidence"] if doc else None

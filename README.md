@@ -25,7 +25,7 @@ Real problems get fixed. Real disagreements get resolved with evidence. Nothing 
 
 ## The one rule that never bends
 
-**You merge everything.** Not Claude, not Codex — you. The two AI systems can design, build, argue with each other, and prepare a change down to the last detail, but the final "yes, ship it" is always a human decision. Even when the whole process runs unattended overnight, it stops and waits for you at that last step, every time.
+**You merge everything, unless you say otherwise.** By default it is not Claude and not Codex — it is you. The two AI systems can design, build, argue with each other, and prepare a change down to the last detail, but the final "yes, ship it" is a human decision. Even when the whole process runs unattended overnight, it stops and waits for you at that last step, every time. The one exception is opt-in: if you record an **Autonomous merge** rule (see `docs/DEVELOPMENT-PROCESS.md` → Unattended mode), Claude may merge a PR that meets that rule's conditions. Nothing merges on its own until you do.
 
 ## Why bother with two AIs instead of one?
 

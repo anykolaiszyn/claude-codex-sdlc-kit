@@ -30,6 +30,17 @@ Every rule in the kit exists because something went wrong without it. These are 
 - **Stop rules keep it bounded.** The loop stops on a 👍, on a round with no blocking findings, or after 3 fix rounds.
 - **Tag, don't wait.** The loop @mentions you, assigns the PR to you and moves on to the next eligible issue, so a quiet reviewer never stalls the queue.
 
+## Running unattended
+
+- **A fallback reviewer must be independent, not just a second pass.** A subagent with its own context, given the risks to attack and a `BLOCKING`/`EDGE CASE` reporting contract, found a real hole (a failure path that never counted toward a cap) that the author had missed. It takes seconds, but it is weaker than a different model: prefer waiting for quota on engine, data-conversion and crash-recovery work.
+- **Cap review rounds by realism.** Codex keeps finding failing inputs further from real data (a 5-round review on number formatting ended on values above 1e21). Three rounds, then file the rest as backlog issues with the repro.
+- **The first fix for a numeric or boundary bug is often wrong in a new way.** One rounding fix moved a value into the wrong bin; one column-wide format cost the column's other cells their precision. Add a regression test for the reviewer's counter-example before the next attempt, and assert individual outputs, not just a sum.
+- **A new test must be seen to fail.** Stash the source change and run the test once; a couple passed without the fix (a delete that succeeds on Windows with an open handle, a spy that matched a reused descriptor number).
+- **Gate commits on the real exit status.** `cmd | grep ...; git commit` commits whatever the tests said. Capture the output, check for failures, then commit.
+- **Re-baseline after every base move.** Other agents merge while you work. Fetch, and if the lockfile changed, reinstall before trusting typecheck (`Cannot find module` after a merge usually means stale dependencies, not a bug).
+- **Close an issue only with the PR that finishes it.** For partial work, `Closes part of #N` plus a comment on the issue listing what remains kept several multi-part issues honest.
+- **Flaky tests cost more than they look.** Each unrelated red run forces a rerun-and-judge step. Track them in one `process` issue so the judgement is quick.
+
 ## Git hygiene
 
 - **Only one agent commits.** When two agents both write to history, you get conflicts and commits nobody can account for.

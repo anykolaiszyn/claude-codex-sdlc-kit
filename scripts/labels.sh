@@ -10,6 +10,7 @@ bug|d73a4a|Wrong behaviour for something the product ships
 edge-case|fbca04|Valid finding outside the current milestone's data or scope
 feature|0e8a16|New capability
 process|5319e7|Development workflow, tooling, docs
+flaky|c5def5|Intermittent test failure, usually under load
 from-codex|1d76db|Found by Codex (local review or PR bot)
 from-review|0052cc|Found by a Claude reviewer
 blocked|b60205|Cannot proceed until something else lands

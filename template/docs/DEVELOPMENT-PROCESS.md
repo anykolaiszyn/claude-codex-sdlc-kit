@@ -8,9 +8,9 @@ How work gets done in this repo. Claude orchestrates; Codex is a second reviewer
 2. **Design.** `superpowers:brainstorming`, then a spec in `docs/superpowers/specs/`, approved by the user.
 3. **Plan.** `superpowers:writing-plans`. When the plan is written, create one GitHub issue per plan task and link them from the milestone's overview issue.
 4. **Build.** `superpowers:subagent-driven-development` on a feature branch (never `{{MAIN_BRANCH}}`), using the roles below.
-5. **Before the PR.** Classify the change's risk tier (see **Review budget** below) and review accordingly: low-risk work can skip Codex entirely, medium-risk work gets a focused local `codex review --base <the PR's base branch>` (usually `{{MAIN_BRANCH}}`; the parent branch when stacked) via the `pairing-with-codex-cli` skill's `.claude/skills/pairing-with-codex-cli/run-codex.sh` — or the `pre_pr_review` role's other configured provider, see **Provider assignment** — and high-risk work gets the full review plus the usual follow-up loop. State the tier and why in the PR description. Then perform the final whole-branch Claude review and its single fix wave.
+5. **Before the PR.** Classify the change's risk tier (see **Review budget** below) and review accordingly: low-risk work can skip Codex entirely, medium-risk work gets a focused local `codex review --base <the PR's base branch>` (usually `{{MAIN_BRANCH}}`; the parent branch when stacked) via the `pairing-with-codex-cli` skill's `.claude/skills/pairing-with-codex-cli/run-codex.sh` — or the `pre_pr_review` role's other configured provider, see **Provider assignment** — and high-risk work gets the full review plus the usual follow-up loop. State the tier and why in the PR description. When a Claude-equivalent review stood in for Codex, add the line `Review fallback: <provider>` to the PR summary comment (the observer reads it). Cap the local pre-PR review at 3 rounds: a finding whose failing input lies outside the data and ranges the product realistically sees is a backlog issue, not another fix round. Then perform the final whole-branch Claude review and its single fix wave.
 6. **PR.** The body lists `Closes #N` for every issue the branch completes. For partial work across several PRs, use `Closes part of #N`; reserve `Closes #N` for the final completing PR (including commit messages). Run the PR follow-up loop until it stops.
-7. **Merge** by the user. The same PR ticks off finished items in `docs/ROADMAP.md`.
+7. **Merge** by the user, unless the project owner has opted in to the **Autonomous merge** rule under Unattended mode. The same PR ticks off finished items in `docs/ROADMAP.md`.
 
 ## Roles
 
@@ -32,12 +32,12 @@ Rules everywhere:
 - If the task needs broad context, judgment or multi-file trade-offs, keep it with Claude instead of delegating it to Codex.
 - The default is a value-first model policy: start with the cheapest model that can validate the change, then escalate to a stronger model only when risk, ambiguity, or impact rises.
 - The process must remain universal. A repo may use Codex heavily, lightly, or only on high-risk work; the deciding factor is the risk-adjusted value of the review, not a blanket rule.
-- The PR remains the human-in-the-loop gate. Codex can suggest and review, but the final merge is always a person-approved action.
+- The PR remains the human-in-the-loop gate. Codex can suggest and review, but the final merge is a person-approved action. The only exception is the opt-in **Autonomous merge** rule (see Unattended mode): the project owner's recorded approval, given in advance, for PRs that meet its conditions.
 - If a review or PR bot hits a limit, see **Failover and quota handling** below. Never silently drop the review step.
 
 ## Provider assignment
 
-Each role in the table above resolves to a provider through `.claude/agents.json`: an ordered list of provider names per role, and an `enabled` flag on each provider (see the file itself for the schema). Claude resolves a role by walking its list and taking the first entry with `enabled: true`; for a `local` (OpenAI-compatible HTTP) provider, an unreachable endpoint at call time counts the same as "not usable" and falls through to the next entry. If nothing in a role's chain is usable, apply the **Review budget** and **Failover and quota handling** rules below exactly as if the default provider had hit its limit.
+Each role in the table above resolves to a provider through `.claude/agents.json`: an ordered list of provider names per role, and an `enabled` flag on each provider (see the file itself for the schema). Claude resolves a role by walking its list and taking the first entry with `enabled: true`; for a `local` (OpenAI-compatible HTTP) provider, an unreachable endpoint at call time counts the same as "not usable" and falls through to the next entry. A provider that reports quota exhaustion (for `run-codex.sh`, exit 3) is treated as not usable for the rest of the session, so the next entry in the chain runs; do not retry it until the next session. If nothing in a role's chain is usable, apply the **Review budget** and **Failover and quota handling** rules below exactly as if the default provider had hit its limit.
 
 A repo with no `.claude/agents.json` behaves exactly as this table's defaults describe — the file is additive, not required.
 
@@ -61,7 +61,8 @@ A transient hiccup and an exhausted quota need different responses; conflating t
 
 - **Transient error or silence** (a bot glitch, a dropped response): use the PR follow-up loop's normal retry — one retry per round, 600 seconds apart. Keep polling on that cadence; it's sized for a minutes-scale hiccup, and it's covered in the PR follow-up loop below.
 - **Usage limit / quota exhausted** (the CLI or bot reports it's out of quota): quota resets run hours to days, not minutes. Do not keep polling on the 600-second cadence. Fall back immediately, for this round, to a Claude-equivalent review (or the other side's local/CLI review, if only one of CLI/bot is out). Note the fallback in the PR. Try Codex again on the next PR or session, not within this wait loop.
-- Either way: a limit pauses or reroutes the review, it never removes it, and it never authorizes a merge without the human.
+- Either way: a limit pauses or reroutes the review, it never removes it, and it never authorizes a merge on its own. Only an opted-in **Autonomous merge** rule can, and then only with a completed review on the head commit.
+- The Claude-equivalent review is a separate, read-only reviewer with its own context, run on the head commit, with the brief in `pairing-with-codex-cli` → **Claude-equivalent review brief**. It is weaker than an independent model, so for engine, data-conversion or crash-recovery work prefer waiting for the quota to reset.
 - A provider disabled on purpose in `.claude/agents.json` follows the same rule as one that's hit a limit: fall through the role's configured chain, then these tiers — never silently drop the review step.
 
 ## Triage
@@ -116,6 +117,21 @@ Before asking the user to merge a branch that other PRs target, list its depende
 If draining is impractical, retarget remaining open PRs to the surviving base, inspect their diffs and rerun required checks before presenting them for merge. After verifying the merged branch contains no stranded work, ask the user to delete it promptly. GitHub [retargets open dependent PRs when a merged head branch is deleted](https://docs.github.com/en/pull-requests/how-tos/commit-changes/managing-branches-within-your-repository); do not assume merging alone retargeted them. Confirm each actual PR base, and never keep targeting an already-merged branch. Merging and branch deletion remain user actions.
 
 After a base-of-stack merge, fetch and inspect `git log origin/{{MAIN_BRANCH}}..origin/<branch>` while the ref exists (also compare with its immediate surviving base for deeper stacks). Nonempty output needs investigation: squash/rebase merges change commit identity, so it is not proof of missing work. Compare the merged PR's recorded head with the branch's current tip and verify expected code/tests on the destination. Preserve local refs and worktrees until accounted for; if a remote ref is gone, inspect the retained local branch and PR history. Recover stranded changes through a new PR to the surviving base, resolve conflicts and test, then let the user merge it. Never delete unique work based only on a PR's merged status.
+
+### Autonomous merge (opt-in)
+
+By default the user merges. A project owner can opt in by recording a **Merge rule** here; the kit's recommended minimum is that Claude merges a PR (squash, matching the repo's history) only when all of these hold:
+
+1. **No blocking findings.** The head commit has a completed review with no open blocking finding: the Codex review (each blocking finding fixed, each valid edge case filed as a backlog issue with a reply, each invalid one answered with probe evidence), or, when Codex is out of quota, disabled, or skipped by the risk tier, a Claude-equivalent review of the head commit plus a scoped re-review of the last fix round. A review that is merely silent is not clean.
+2. **Nothing needs the user.** No open `needs-decision`/`blocked` label or `Depends on` issue, no unanswered question, no design choice the PR made on the user's behalf that is not recorded as a ruling in its description.
+3. **Green.** Tests and typecheck pass on the head commit, and the PR is conflict-free against its base. When the base moved, fetch and merge or rebase it first; a branch that needs dependency changes from the base reinstalls them before running tests.
+4. **Stack order.** Stacked PRs follow **Stacked branches: drain before merging**.
+
+Claude then verifies the merge landed (the default branch's log shows it and the `Closes #N` issues are closed) and reports it in its next status message. It still stops and asks for anything destructive or irreversible outside the PR, a change the user asked to review personally, and the first time a new kind of risk appears. The rule does not change itself: edits to it need the user's explicit instruction.
+
+### Flaky tests
+
+A full-suite failure in a test unrelated to the change is not a reason to merge or to block. Rerun that file alone; if it passes, treat the failure as a flake, open (or add a comment to) a `process` issue, also labelled `flaky`, naming the test and the conditions (for example, many parallel suites), and continue. Never "fix" the change to satisfy a flaky test, and never skip the full run.
 
 ### Issue pickup
 

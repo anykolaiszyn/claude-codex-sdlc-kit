@@ -89,13 +89,13 @@ After pushing, post "@codex review" (a new PR is reviewed automatically), then s
 **Limit handling and failover (required):** see `docs/DEVELOPMENT-PROCESS.md` → **Failover and quota handling** for the full rule. Summary:
 - A **transient error or silence** ("Something went wrong", or nothing yet) uses this loop's normal retry: one per round, on the existing 600-second cadence.
 - A **usage-limit / quota-exhausted** response is a different failure shape: quota resets run hours to days, not 600 seconds, so do not keep polling this loop's cadence waiting on it. Fall back immediately, for this round, to a Claude-equivalent review (or the CLI, if only the bot is out, or vice versa), note the fallback in the PR, and try Codex again next PR or session.
-- Either way: never silently skip the review step, and never force a merge with no human approval. A limit pauses or reroutes the check; it doesn't erase it.
+- Either way: never silently skip the review step, and never merge without a person's approval, which is either the human merging or the owner's opted-in **Autonomous merge** rule with all of its conditions met on the head commit. A limit pauses or reroutes the check; it doesn't erase it.
 
 **End of every triage round (required checklist, even when your summary is short):**
 - [ ] **If a blocking fix was pushed:** post "@codex review" on the PR, then self-schedule the next wake-up 600 seconds later (`ScheduleWakeup`) before ending your turn.
 - [ ] **If no blocking fix was pushed** (only backlog issues or invalid findings): the round meets the stopping rule. Post the summary comment, and don't trigger another review.
 - [ ] **If the change was low-risk and already covered by tests:** do not re-trigger a full review cycle just because a PR is open; keep the loop narrow and stop early.
-- [ ] **If review services are unavailable:** apply the transient-vs-quota split above, preserve the human approval gate, and resume later when limits clear.
+- [ ] **If review services are unavailable:** apply the transient-vs-quota split above, preserve the approval gate (the human, or the opted-in **Autonomous merge** rule's conditions), and resume later when limits clear.
 
 **Stop** when Codex reacts 👍, or a round has no blocking findings, or after 3 fix rounds (then tag the user). Finish with one PR summary comment: the review budget tier and reason (from the PR description), fixes with commits, issues opened, invalid findings, and any blocking findings still open (listed first); if a quota failover happened, name it. Then tag the user (@mention them in the summary comment, assign the PR to them, and send a push notification), then move on to the next available issue (see Unattended mode). Never stop to ask.
 

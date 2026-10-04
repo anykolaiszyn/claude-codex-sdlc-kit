@@ -32,7 +32,7 @@ Rules everywhere:
 - If the task needs broad context, judgment or multi-file trade-offs, keep it with Claude instead of delegating it to Codex.
 - The default is a value-first model policy: start with the cheapest model that can validate the change, then escalate to a stronger model only when risk, ambiguity, or impact rises.
 - The process must remain universal. A repo may use Codex heavily, lightly, or only on high-risk work; the deciding factor is the risk-adjusted value of the review, not a blanket rule.
-- The PR remains the human-in-the-loop gate. Codex can suggest and review, but the final merge is always a person-approved action.
+- The PR remains the human-in-the-loop gate. Codex can suggest and review, but the final merge is a person-approved action. The only exception is the opt-in **Autonomous merge** rule (see Unattended mode): the project owner's recorded approval, given in advance, for PRs that meet its conditions.
 - If a review or PR bot hits a limit, see **Failover and quota handling** below. Never silently drop the review step.
 
 ## Provider assignment

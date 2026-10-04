@@ -12,6 +12,7 @@ Invoke the `loop` skill in dynamic mode (no interval) with this prompt, verbatim
   - **invalid:** reply with the evidence
 - **Stop a PR** on 👍, a round with no blocking findings, or 3 fix rounds. Post a summary comment that @mentions the user, assign the PR to them, and send a push notification. On a solo setup, the push notification is the only alert the user gets, because GitHub doesn't notify people about their own activity.
 - **Pick the next eligible issue:** labelled `bug`, `edge-case` or `process`; not `blocked` or `needs-decision`; no open "Depends on". Take it through a design comment on the issue, a worktree, TDD, a local Codex review, and a PR.
+- **Merging:** hand the PR to the user, unless the project recorded the opt-in **Autonomous merge** rule in docs/DEVELOPMENT-PROCESS.md and every one of its conditions holds on the head commit; then merge and report it.
 - **Stack safety:** follow the process's **Stacked branches: drain before merging** rule before handing a parent PR to the user; confirm bases after merges and audit for stranded work. Use the skill's **Worktree setup** convention for missing files. Use `Closes part of #N` for partial issue work, reserving `Closes #N` for completion.
 - **When nothing is looping and nothing is eligible:** stop the loop, send the user a push notification, and list what's waiting for them.
 

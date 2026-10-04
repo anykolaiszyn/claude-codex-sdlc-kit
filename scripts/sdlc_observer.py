@@ -358,7 +358,7 @@ def triggers_of(comments, cfg):
 
 
 # The PR summary comment names a quota failover with a line "Review fallback: <provider>" (see the process doc).
-_FALLBACK_RE = re.compile(r"^Review fallback:[ \t]*(\S[^\r\n]{0,59})[ \t]*$", re.I | re.M)
+_FALLBACK_RE = re.compile(r"^Review fallback:[ \t]*(\S[^\r\n]{0,59})[ \t\r]*$", re.I | re.M)
 
 
 def fallbacks_of(comments, cfg):

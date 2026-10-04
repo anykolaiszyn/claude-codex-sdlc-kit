@@ -139,7 +139,7 @@ The loop runs inside your Claude Code session. Closing the session stops it.
 
 **Does it work outside Node/TypeScript?** Yes. Only four commands are specific to a stack: test, check, and the two Codex runs. See [customizing.md](customizing.md).
 
-**Will it merge or push to `main`?** No. It never commits on the default branch, and merging is always yours.
+**Will it merge or push to `main`?** It never commits on the default branch, and merging is yours by default. Only if you record the opt-in **Autonomous merge** rule (`docs/DEVELOPMENT-PROCESS.md` → Unattended mode) may Claude merge a PR that meets that rule's conditions.
 
 **Can Codex push?** No. `AGENTS.md` forbids it, and Claude reviews every Codex diff before committing it.
 

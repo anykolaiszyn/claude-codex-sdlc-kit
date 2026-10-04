@@ -667,6 +667,43 @@ class FallbackReviewTests(ObserveCase):
         self.w.prs[1]["comments"].append(comment(60, OWNER, "Review fallback: " + "x" * 80, T2))
         self.assertIsNone(self.run_ok())
 
+    def test_crlf_bodies_from_the_web_ui_are_recognised(self):
+        self.w.add_pr(1)
+        self.run_ok()
+        self.w.prs[1]["comments"].append(comment(60, OWNER, "Summary\r\nReview fallback: claude-sonnet\r\nmore\r\n", T2))
+        pr = self.obs_for(self.run_ok(), "pr", 1)
+        self.assertEqual(pr["signals"]["review_fallback_provider"], "claude-sonnet")
+
+    def test_only_the_newest_three_declarations_are_kept_and_the_newest_wins(self):
+        self.w.add_pr(1)
+        self.run_ok()
+        for i in range(5):
+            self.w.prs[1]["comments"].append(comment(60 + i, OWNER, "Review fallback: p%d" % i, T2))
+        pr = self.obs_for(self.run_ok(), "pr", 1)
+        self.assertEqual(pr["signals"]["review_fallback_provider"], "p4")
+        self.assertLessEqual(len(json.loads(self.state_text())["prs"]["1"]["fallbacks"]), 3)
+
+    def test_an_edited_declaration_rebinds_to_the_head_it_was_seen_on(self):
+        self.w.add_pr(1)
+        self.run_ok()
+        self.w.prs[1]["comments"].append(comment(60, OWNER, "Review fallback: first", T2))
+        self.run_ok()
+        self.w.prs[1]["comments"][0]["body"] = "Review fallback: second"
+        pr = self.obs_for(self.run_ok(), "pr", 1)
+        self.assertEqual(pr["signals"]["review_fallback_provider"], "second")
+        self.assertEqual(pr["signals"]["review_fallback"], "bound_to_head")
+
+    def test_a_state_file_from_before_the_signal_loads_and_stays_silent(self):
+        self.w.add_pr(1)
+        self.run_ok()
+        path = os.path.join(self.dir, obs.STATE_FILE)
+        doc = json.loads(self.state_text())
+        for pr in doc["prs"].values():
+            pr.pop("fallbacks", None)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(doc, f)
+        self.assertIsNone(self.run_ok())
+
     def test_unchanged_poll_is_silent(self):
         self.w.add_pr(1)
         self.run_ok()

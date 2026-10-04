@@ -8,7 +8,7 @@ How work gets done in this repo. Claude orchestrates; Codex is a second reviewer
 2. **Design.** `superpowers:brainstorming`, then a spec in `docs/superpowers/specs/`, approved by the user.
 3. **Plan.** `superpowers:writing-plans`. When the plan is written, create one GitHub issue per plan task and link them from the milestone's overview issue.
 4. **Build.** `superpowers:subagent-driven-development` on a feature branch (never `{{MAIN_BRANCH}}`), using the roles below.
-5. **Before the PR.** Classify the change's risk tier (see **Review budget** below) and review accordingly: low-risk work can skip Codex entirely, medium-risk work gets a focused local `codex review --base <the PR's base branch>` (usually `{{MAIN_BRANCH}}`; the parent branch when stacked) via the `pairing-with-codex-cli` skill's `.claude/skills/pairing-with-codex-cli/run-codex.sh` — or the `pre_pr_review` role's other configured provider, see **Provider assignment** — and high-risk work gets the full review plus the usual follow-up loop. State the tier and why in the PR description. Cap the local pre-PR review at 3 rounds: a finding whose failing input lies outside the data and ranges the product realistically sees is a backlog issue, not another fix round. Then perform the final whole-branch Claude review and its single fix wave.
+5. **Before the PR.** Classify the change's risk tier (see **Review budget** below) and review accordingly: low-risk work can skip Codex entirely, medium-risk work gets a focused local `codex review --base <the PR's base branch>` (usually `{{MAIN_BRANCH}}`; the parent branch when stacked) via the `pairing-with-codex-cli` skill's `.claude/skills/pairing-with-codex-cli/run-codex.sh` — or the `pre_pr_review` role's other configured provider, see **Provider assignment** — and high-risk work gets the full review plus the usual follow-up loop. State the tier and why in the PR description. When a Claude-equivalent review stood in for Codex, add the line `Review fallback: <provider>` to the PR summary comment (the observer reads it). Cap the local pre-PR review at 3 rounds: a finding whose failing input lies outside the data and ranges the product realistically sees is a backlog issue, not another fix round. Then perform the final whole-branch Claude review and its single fix wave.
 6. **PR.** The body lists `Closes #N` for every issue the branch completes. For partial work across several PRs, use `Closes part of #N`; reserve `Closes #N` for the final completing PR (including commit messages). Run the PR follow-up loop until it stops.
 7. **Merge** by the user, unless the project owner has opted in to the **Autonomous merge** rule under Unattended mode. The same PR ticks off finished items in `docs/ROADMAP.md`.
 
@@ -37,7 +37,7 @@ Rules everywhere:
 
 ## Provider assignment
 
-Each role in the table above resolves to a provider through `.claude/agents.json`: an ordered list of provider names per role, and an `enabled` flag on each provider (see the file itself for the schema). Claude resolves a role by walking its list and taking the first entry with `enabled: true`; for a `local` (OpenAI-compatible HTTP) provider, an unreachable endpoint at call time counts the same as "not usable" and falls through to the next entry. If nothing in a role's chain is usable, apply the **Review budget** and **Failover and quota handling** rules below exactly as if the default provider had hit its limit.
+Each role in the table above resolves to a provider through `.claude/agents.json`: an ordered list of provider names per role, and an `enabled` flag on each provider (see the file itself for the schema). Claude resolves a role by walking its list and taking the first entry with `enabled: true`; for a `local` (OpenAI-compatible HTTP) provider, an unreachable endpoint at call time counts the same as "not usable" and falls through to the next entry. A provider that reports quota exhaustion (for `run-codex.sh`, exit 3) is treated as not usable for the rest of the session, so the next entry in the chain runs; do not retry it until the next session. If nothing in a role's chain is usable, apply the **Review budget** and **Failover and quota handling** rules below exactly as if the default provider had hit its limit.
 
 A repo with no `.claude/agents.json` behaves exactly as this table's defaults describe — the file is additive, not required.
 
@@ -131,7 +131,7 @@ Claude then verifies the merge landed (the default branch's log shows it and the
 
 ### Flaky tests
 
-A full-suite failure in a test unrelated to the change is not a reason to merge or to block. Rerun that file alone; if it passes, treat the failure as a flake, open (or add a comment to) a `process` issue naming the test and the conditions (for example, many parallel suites), and continue. Never "fix" the change to satisfy a flaky test, and never skip the full run.
+A full-suite failure in a test unrelated to the change is not a reason to merge or to block. Rerun that file alone; if it passes, treat the failure as a flake, open (or add a comment to) a `process` issue, also labelled `flaky`, naming the test and the conditions (for example, many parallel suites), and continue. Never "fix" the change to satisfy a flaky test, and never skip the full run.
 
 ### Issue pickup
 

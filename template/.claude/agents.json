@@ -11,7 +11,7 @@
     "implementation": { "providers": ["codex-cli", "claude-sonnet"] },
     "task_review":    { "providers": ["claude-sonnet"] },
     "pre_pr_review":  { "providers": ["codex-cli", "local", "claude-sonnet"] },
-    "final_review":   { "providers": ["claude-opus"] },
+    "final_review":   { "providers": ["claude-opus", "claude-sonnet"] },
     "pr_gate":        { "providers": ["codex-cloud-bot"] }
   }
 }

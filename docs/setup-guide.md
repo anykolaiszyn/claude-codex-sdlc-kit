@@ -118,7 +118,7 @@ When you come back and have merged the PRs you're happy with:
 | `.claude/skills/pairing-with-codex-cli/` | Claude | A repo copy of the skill, so teammates without the plugin get it too |
 | `.claude/skills/pairing-with-local-llms/` | Claude | A repo copy of the local-LLM review adapter, for teammates without the plugin |
 | `.github/ISSUE_TEMPLATE/` | you and Claude | Backlog-finding and milestone-overview templates |
-| Labels | GitHub | Type: `bug`, `edge-case`, `feature`, `process`. Source: `from-codex`, `from-review`. Status: `blocked`, `needs-decision`. |
+| Labels | GitHub | Type: `bug`, `edge-case`, `feature`, `process`, `flaky`. Source: `from-codex`, `from-review`. Status: `blocked`, `needs-decision`. |
 
 The bootstrap **never overwrites** existing files. It lists the ones it skipped so they can be merged by hand.
 
@@ -178,7 +178,7 @@ What the script does:
 - Copies `template/` into the repo and fills in the `{{PLACEHOLDERS}}`. It **never overwrites** an existing file; it lists the skipped files so you can merge them by hand.
 - Adds `.superpowers/` to `.gitignore`. Worktrees and plan ledgers live there.
 - With `--labels`, creates the labels:
-  - type: `bug`, `edge-case`, `feature`, `process`
+  - type: `bug`, `edge-case`, `feature`, `process`, `flaky`
   - source: `from-codex`, `from-review`
   - status: `blocked`, `needs-decision`
 - With `--milestone`, creates the first GitHub milestone.

@@ -357,6 +357,43 @@ def triggers_of(comments, cfg):
                   key=_order)
 
 
+# The PR summary comment names a quota failover with a line "Review fallback: <provider>" (see the process doc).
+_FALLBACK_RE = re.compile(r"^Review fallback:[ \t]*(\S[^\r\n]{0,59})[ \t]*$", re.I | re.M)
+
+
+def fallbacks_of(comments, cfg):
+    """Fallback-review declarations by the requester, oldest first."""
+    return sorted((c for c in comments
+                   if is_trusted(c["user"], cfg["requester"]) and _FALLBACK_RE.search(str(c["body"]))),
+                  key=_order)
+
+
+def bind_fallbacks(raw, old, cfg, head, base):
+    """Bind a declaration to a head only if this observer witnessed it arrive on that revision (as for requests)."""
+    witnessed = old is not None and old["head"] == head and old["base"] == base
+    previous = (old or {}).get("fallbacks", {})
+    out = {}
+    for c in fallbacks_of(raw["issue_comments"], cfg)[-3:]:
+        h, prev = digest(c["body"]), previous.get(str(c["id"]))
+        provider = clean(_FALLBACK_RE.search(str(c["body"])).group(1), 40)
+        here = {"head": head, "base": base}
+        if prev and prev["hash"] == h:  # a binding that stopped matching is dropped for good
+            out[str(c["id"])] = {"hash": h, "provider": provider,
+                                 "bound_to": prev["bound_to"] if prev["bound_to"] == here else None}
+        else:
+            out[str(c["id"])] = {"hash": h, "provider": provider, "bound_to": here if witnessed else None}
+    return out
+
+
+def latest_fallback(pr):
+    """(provider, binding) of the newest retained fallback declaration, or None."""
+    fb = pr.get("fallbacks") or {}
+    if not fb:
+        return None
+    entry = fb[max(fb, key=int)]
+    return entry["provider"], request_binding(entry, pr)
+
+
 _NOTICE_PATTERNS = (
     ("quota", re.compile(r"usage limit|quota|credits?\b|rate limit|spend(ing)? (cap|limit)|limits? (reached|exceeded)", re.I)),
     ("error", re.compile(r"unable to|couldn'?t|could not|failed|error|went wrong", re.I)),
@@ -484,6 +521,7 @@ def normalize_pr(raw, old, cfg):
         "findings": sorted(findings, key=lambda f: f["id"]),
         "checks": summarize_checks(raw["check_runs"], raw["statuses"]),
         "human_reviews": human,
+        "fallbacks": bind_fallbacks(raw, old, cfg, head, base),
     }
 
 
@@ -547,6 +585,8 @@ def pr_reasons(old, new):
         r.append("review_request_changed")
     if old["evidence"] != new["evidence"]:
         r.append("evidence_changed")
+    if old.get("fallbacks", {}) != new.get("fallbacks", {}):
+        r.append("fallback_review_changed")
     return r
 
 
@@ -584,6 +624,9 @@ def would_act_pr(pr, reasons):
                 acts.append("await_review")
         else:
             acts.append("review_current_head")
+    fb = latest_fallback(pr)
+    if fb and fb[1] == "bound" and pr["receipt"] != "current":
+        acts.append("confirm_fallback_review")  # reviewed by a weaker stand-in: a human decides whether that is enough
     if pr["findings"]:
         acts.append("triage_findings")
     if pr["checks"]["state"] == "failed":
@@ -607,6 +650,9 @@ def pr_observation(number, pr, change, reasons):
             "required_checks_known": False,  # branch protection is not read; never "all required met"
             "review_request": request_state(pr),
             "reviewer_notice": reviewer_notice(pr),
+            "review_fallback": "none" if latest_fallback(pr) is None else (
+                "bound_to_head" if latest_fallback(pr)[1] == "bound" else "unbound"),
+            "review_fallback_provider": None if latest_fallback(pr) is None else latest_fallback(pr)[0],
             "findings_triage_unknown": len(pr["findings"]),
             "changes_requested_by": sorted(k for k, v in pr["human_reviews"].items()
                                            if v["state"] == "CHANGES_REQUESTED"),

@@ -11,4 +11,8 @@
 | `run-codex.sh: Permission denied` | The executable bit was lost on Windows | `git add --chmod=+x .claude/skills/pairing-with-codex-cli/run-codex.sh` |
 | `bad interpreter: /usr/bin/env: bash^M` | CRLF line endings | Keep `*.sh text eol=lf` in `.gitattributes`, then run `git add --renormalize .` |
 | The loop stopped when you closed the terminal | `/loop` runs inside the session | Reopen the session and run `/sdlc-resume` |
+| `gh pr create --body-file /tmp/x.md` fails with `open /tmp/x.md: The system cannot find the file specified` (Git Bash on Windows) | `gh` is a native program and does not translate MSYS paths | Pass a native path: `--body-file "$(cygpath -m "$TMPDIR/x.md")"` |
+| `tsc` reports `Cannot find module` right after fetching the base | The base added dependencies and `node_modules` is stale | Reinstall (`npm ci`) in the worktree, then rerun typecheck |
+| One unrelated test fails in the full suite but passes alone | A timing-dependent flake under load | Rerun that file alone, then record it on the project's flaky-test `process` issue. See `docs/DEVELOPMENT-PROCESS.md` → **Flaky tests** |
+| A long `npm ci` or clone times out the tool call | The foreground call has a time limit | Run it in the background and wait for its completion notice |
 | The bootstrap skipped `CLAUDE.md` | The file already exists | Merge it by hand from `template/CLAUDE.md`. `/sdlc-init` does this for you |

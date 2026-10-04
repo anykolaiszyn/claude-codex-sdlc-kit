@@ -5,6 +5,9 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- `docs/DEVELOPMENT-PROCESS.md` (template): an opt-in **Autonomous merge** rule, a **Flaky tests** rule, and a 3-round cap on the local pre-PR review for findings outside realistic data.
+- `pairing-with-codex-cli`: a **Claude-equivalent review brief** for when Codex is out of quota, plus three new common-mistake rows.
+- `docs/lessons-learned.md`: a **Running unattended** section; `docs/troubleshooting.md`: rows for `gh --body-file` on Git Bash, stale dependencies after a base move, flaky tests, and long installs.
 - `scripts/sdlc_observer.py` and `docs/observer.md`: an optional, stdlib-only, read-only observer that reports structured "would act" changes for a repository (no execution, no GitHub writes, empty output when nothing changed), with `tests/test_sdlc_observer.py` run in CI. `docs/review-contract.md` is the proposed, unshipped next-stage review contract.
 - The README's Prerequisites section: minimum paid plans (Claude Pro, ChatGPT Plus) with links, a tools table including the superpowers plugin from Anthropic's official marketplace, and a summary of the GitHub and Codex configuration.
 - `docs/github-setup.md`: repo settings, branch protection, `gh` permissions, connecting Codex and turning on automatic code review, and notifications.
